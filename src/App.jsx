@@ -1,28 +1,11 @@
 import { useState, useMemo, useEffect } from "react";
 
 const CREDS = { username:"admin", password:"admin123" };
-const SEED = [
-  { id:1,  date:"2026-03-01", description:"Zomato Order",       category:"Food & Dining", method:"UPI",           type:"debit",  amount:450   },
-  { id:2,  date:"2026-03-01", description:"Salary Credit",      category:"Income",        method:"Bank Transfer", type:"credit", amount:85000 },
-  { id:3,  date:"2026-03-02", description:"Electricity Bill",   category:"Utilities",     method:"UPI",           type:"debit",  amount:1240  },
-  { id:4,  date:"2026-03-02", description:"Netflix",            category:"Entertainment", method:"Credit Card",   type:"debit",  amount:649   },
-  { id:5,  date:"2026-03-03", description:"Grocery Store",      category:"Food & Dining", method:"Cash",          type:"debit",  amount:780   },
-  { id:6,  date:"2026-03-03", description:"Freelance Payment",  category:"Income",        method:"UPI",           type:"credit", amount:12000 },
-  { id:7,  date:"2026-03-04", description:"HDFC Card Bill",     category:"Credit Card",   method:"UPI",           type:"debit",  amount:8500  },
-  { id:8,  date:"2026-03-04", description:"Petrol",             category:"Transport",     method:"Cash",          type:"debit",  amount:1500  },
-  { id:9,  date:"2026-03-04", description:"Rent Received",      category:"Income",        method:"Bank Transfer", type:"credit", amount:15000 },
-  { id:10, date:"2026-03-04", description:"Amazon Purchase",    category:"Shopping",      method:"Credit Card",   type:"debit",  amount:2399  },
-  { id:11, date:"2026-03-05", description:"Swiggy",             category:"Food & Dining", method:"UPI",           type:"debit",  amount:320   },
-  { id:12, date:"2026-03-05", description:"Mobile Recharge",    category:"Utilities",     method:"UPI",           type:"debit",  amount:299   },
-  { id:13, date:"2026-02-10", description:"Gym Membership",     category:"Healthcare",    method:"Credit Card",   type:"debit",  amount:1500  },
-  { id:14, date:"2026-02-14", description:"Valentine Dinner",   category:"Food & Dining", method:"Credit Card",   type:"debit",  amount:2200  },
-  { id:15, date:"2026-02-20", description:"Salary Feb",         category:"Income",        method:"Bank Transfer", type:"credit", amount:85000 },
-  { id:16, date:"2026-02-25", description:"Book Purchase",      category:"Education",     method:"UPI",           type:"debit",  amount:650   },
-  { id:17, date:"2026-01-05", description:"New Year Party",     category:"Entertainment", method:"Cash",          type:"debit",  amount:3500  },
-  { id:18, date:"2026-01-15", description:"Salary Jan",         category:"Income",        method:"Bank Transfer", type:"credit", amount:85000 },
-  { id:19, date:"2026-01-20", description:"Insurance Premium",  category:"Healthcare",    method:"Bank Transfer", type:"debit",  amount:12000 },
-  { id:20, date:"2026-01-28", description:"Grocery",            category:"Food & Dining", method:"Cash",          type:"debit",  amount:1100  },
-];
+// localStorage helpers
+const LS = {
+  get: (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
+  set: (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} },
+};
 
 const CATEGORIES = ["Food & Dining","Utilities","Entertainment","Credit Card","Transport","Shopping","Healthcare","Education","Income","Other"];
 const METHODS = ["UPI","Cash","Credit Card","Bank Transfer","Debit Card"];
@@ -136,6 +119,18 @@ function Dashboard({ txns, dailyBudget }) {
   const todaySpend = txns.filter(t=>t.type==="debit"&&t.date===todayStr()).reduce((s,t)=>s+t.amount,0);
   const budgetPct = dailyBudget>0 ? clamp(Math.round((todaySpend/dailyBudget)*100),0,100) : 0;
   const budgetColor = budgetPct>=100?C.red:budgetPct>=80?C.orange:C.green;
+
+  if(txns.length===0) return (
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"60vh",gap:16,textAlign:"center"}}>
+      <div style={{fontSize:64}}>🪙</div>
+      <h2 style={{fontFamily:"Georgia,serif",fontSize:24,color:C.text,fontWeight:800}}>Your Gulak is empty</h2>
+      <p style={{color:C.muted,fontSize:14,maxWidth:320,lineHeight:1.6}}>No transactions yet. Head to <b style={{color:C.gold}}>Add / Edit</b> in the sidebar to record your first entry!</p>
+      <div style={{background:"rgba(245,166,35,.08)",border:"1px solid rgba(245,166,35,.2)",borderRadius:14,padding:"16px 24px",marginTop:8}}>
+        <div style={{fontSize:12,color:C.muted,marginBottom:4}}>Quick tip</div>
+        <div style={{fontSize:13,color:C.gold}}>Also set your Daily Budget in <b>Budget & Savings</b> 🎯</div>
+      </div>
+    </div>
+  );
 
   const catBreakdown = useMemo(()=>{ const m={}; txns.filter(t=>t.type==="debit").forEach(t=>{m[t.category]=(m[t.category]||0)+t.amount;}); return Object.entries(m).sort((a,b)=>b[1]-a[1]); },[txns]);
   const methodBreakdown = useMemo(()=>{ const m={}; txns.forEach(t=>{m[t.method]=(m[t.method]||0)+t.amount;}); return Object.entries(m).sort((a,b)=>b[1]-a[1]); },[txns]);
@@ -708,15 +703,19 @@ function AdminPanel({ txns, onAdd, onUpdate, editTarget, onCancel, dailyBudget, 
 export default function App() {
   const [loggedIn,setLoggedIn]=useState(false);
   const [tab,setTab]=useState("dashboard");
-  const [txns,setTxns]=useState(SEED);
+  const [txns,setTxns]=useState(()=>LS.get("gulak_txns",[]));
   const [editTarget,setEditTarget]=useState(null);
   const [toast,setToast]=useState(null);
   const [delId,setDelId]=useState(null);
-  const [dailyBudget,setDailyBudget]=useState(500);
+  const [dailyBudget,setDailyBudget]=useState(()=>LS.get("gulak_budget",500));
   const [alert,setAlert]=useState(null);
 
+  // Save to localStorage whenever transactions or budget change
+  useEffect(()=>{ LS.set("gulak_txns", txns); },[txns]);
+  useEffect(()=>{ LS.set("gulak_budget", dailyBudget); },[dailyBudget]);
+
   const showToast=(msg,type="success")=>{ setToast({msg,type}); setTimeout(()=>setToast(null),2600); };
-  const handleAdd=txn=>{ const id=Math.max(0,...txns.map(t=>t.id))+1; setTxns(p=>[...p,{...txn,id}]); showToast("Entry added to Gulak! 🪙"); };
+  const handleAdd=txn=>{ const id=Math.max(0,...(txns.length?txns.map(t=>t.id):[0]))+1; setTxns(p=>[...p,{...txn,id}]); showToast("Entry added to Gulak! 🪙"); };
   const handleUpdate=txn=>{ setTxns(p=>p.map(t=>t.id===txn.id?txn:t)); setEditTarget(null); showToast("Transaction updated ✓"); };
   const handleEdit=t=>{ setEditTarget(t); setTab("admin"); };
   const handleDelete=()=>{ setTxns(p=>p.filter(t=>t.id!==delId)); setDelId(null); showToast("Deleted","error"); };
@@ -783,6 +782,7 @@ export default function App() {
                 <div><div style={{fontSize:13,color:C.text,fontWeight:600}}>Admin</div><div style={{fontSize:11,color:C.muted}}>Owner</div></div>
               </div>
               <button onClick={()=>setLoggedIn(false)} style={{width:"100%",background:"transparent",border:`1px solid ${C.border}`,borderRadius:9,padding:"9px",color:C.muted,cursor:"pointer",fontSize:12.5,fontFamily:"inherit",fontWeight:500}}>🚪 Sign Out</button>
+              <button onClick={()=>{ if(window.confirm("Delete ALL transactions? This cannot be undone.")){setTxns([]);showToast("All data cleared","error");}}} style={{width:"100%",marginTop:6,background:"transparent",border:`1px solid rgba(248,113,113,.25)`,borderRadius:9,padding:"8px",color:"rgba(248,113,113,.6)",cursor:"pointer",fontSize:11.5,fontFamily:"inherit",fontWeight:500}}>🗑 Clear All Data</button>
             </div>
           </div>
           <div style={{flex:1,overflowY:"auto",padding:"30px 28px"}}>
