@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/gulak/',  // <-- change this
+  base: '/Gulak/',  // <-- change this
 })
