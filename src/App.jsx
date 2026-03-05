@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 
 // ─── CONFIG — paste your Supabase keys here ───────────────────────────────────
 const SUPA_URL = "https://fxnfnxfjuwwoxwzlabix.supabase.co";
@@ -40,6 +40,34 @@ const sb = {
   async clearAll() {
     const r = await fetch(sb.url("transactions","?id=gte.0"), { method:"DELETE", headers:sb.headers });
     if(!r.ok) throw new Error(await r.text());
+  },
+
+  // Settings (profile + budget) — single row with id=1
+  async getSettings() {
+    const r = await fetch(sb.url("settings","?id=eq.1"), { headers:sb.headers });
+    if(!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    return rows[0] || null;
+  },
+
+  async saveSettings(data) {
+    // Try PATCH first (update existing row), if nothing updated do POST (insert)
+    const patch = await fetch(sb.url("settings","?id=eq.1"), {
+      method:"PATCH",
+      headers:{...sb.headers,"Prefer":"return=representation"},
+      body:JSON.stringify(data)
+    });
+    if(!patch.ok) throw new Error(await patch.text());
+    const updated = await patch.json();
+    // If no row existed, insert one
+    if(updated.length === 0) {
+      const post = await fetch(sb.url("settings"), {
+        method:"POST",
+        headers:{...sb.headers,"Prefer":"return=representation"},
+        body:JSON.stringify({id:1, ...data})
+      });
+      if(!post.ok) throw new Error(await post.text());
+    }
   },
 };
 
@@ -830,14 +858,50 @@ export default function App(){
   const [delId,sDel]=useState(null);
   const [alert,sAlert]=useState(null);
 
+  // Load transactions + settings from Supabase on mount
   useEffect(()=>{
-    sb.all()
-      .then(rows=>{sTxns(rows);sLoad(false);})
+    Promise.all([sb.all(), sb.getSettings()])
+      .then(([rows, settings])=>{
+        sTxns(rows);
+        if(settings){
+          // Merge DB settings into profile (don't overwrite photo which stays local)
+          sProfileRaw(p=>({
+            ...p,
+            username: settings.username || p.username,
+            password: settings.password || p.password,
+            displayName: settings.display_name || p.displayName,
+          }));
+          if(settings.budget) sBudget(Number(settings.budget));
+        }
+        didLoad.current = true;
+        sLoad(false);
+      })
       .catch(e=>{sDbErr(e.message);sLoad(false);});
   },[]);
 
-  useEffect(()=>{LS.set("gulak_budget",budget);},[budget]);
-  const setProfile=fn=>{sProfileRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);return next;});};
+  // Save budget to Supabase when it changes — but only after initial load
+  const didLoad = React.useRef(false);
+  useEffect(()=>{
+    LS.set("gulak_budget",budget);
+    if(!didLoad.current) return; // skip on first mount (loading from DB)
+    sb.saveSettings({budget, username:profile.username, password:profile.password, display_name:profile.displayName||profile.username})
+      .catch(()=>{});
+  },[budget]);
+
+  const setProfile=fn=>{
+    sProfileRaw(p=>{
+      const next=typeof fn==="function"?fn(p):fn;
+      LS.set("gulak_profile",next);
+      // Sync to Supabase (skip photo — too large)
+      sb.saveSettings({
+        username: next.username,
+        password: next.password,
+        display_name: next.displayName||next.username,
+        budget: budget,
+      }).catch(()=>{});
+      return next;
+    });
+  };
 
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
 
