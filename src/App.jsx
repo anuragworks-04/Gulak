@@ -47,27 +47,20 @@ const sb = {
     const r = await fetch(sb.url("settings","?id=eq.1"), { headers:sb.headers });
     if(!r.ok) throw new Error(await r.text());
     const rows = await r.json();
+    console.log("getSettings result:", rows);
     return rows[0] || null;
   },
 
   async saveSettings(data) {
-    // Try PATCH first (update existing row), if nothing updated do POST (insert)
-    const patch = await fetch(sb.url("settings","?id=eq.1"), {
-      method:"PATCH",
+    // DELETE then INSERT — most reliable approach
+    await fetch(sb.url("settings","?id=eq.1"), { method:"DELETE", headers:sb.headers });
+    const r = await fetch(sb.url("settings"), {
+      method:"POST",
       headers:{...sb.headers,"Prefer":"return=representation"},
-      body:JSON.stringify(data)
+      body:JSON.stringify({id:1, ...data})
     });
-    if(!patch.ok) throw new Error(await patch.text());
-    const updated = await patch.json();
-    // If no row existed, insert one
-    if(updated.length === 0) {
-      const post = await fetch(sb.url("settings"), {
-        method:"POST",
-        headers:{...sb.headers,"Prefer":"return=representation"},
-        body:JSON.stringify({id:1, ...data})
-      });
-      if(!post.ok) throw new Error(await post.text());
-    }
+    if(!r.ok){ const t=await r.text(); console.error("saveSettings failed:",t); throw new Error(t); }
+    console.log("saveSettings OK", data);
   },
 };
 
@@ -864,14 +857,21 @@ export default function App(){
       .then(([rows, settings])=>{
         sTxns(rows);
         if(settings){
-          // Merge DB settings into profile (don't overwrite photo which stays local)
-          sProfileRaw(p=>({
-            ...p,
-            username: settings.username || p.username,
-            password: settings.password || p.password,
-            displayName: settings.display_name || p.displayName,
-          }));
+          console.log("Applying settings from DB:", settings);
+          sProfileRaw(p=>{
+            const merged = {
+              ...p,
+              username: settings.username || p.username,
+              password: settings.password || p.password,
+              displayName: settings.display_name || p.displayName || "",
+            };
+            LS.set("gulak_profile", merged);
+            console.log("Profile merged:", merged);
+            return merged;
+          });
           if(settings.budget) sBudget(Number(settings.budget));
+        } else {
+          console.log("No settings row found in DB");
         }
         didLoad.current = true;
         sLoad(false);
