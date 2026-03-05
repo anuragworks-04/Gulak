@@ -1,5 +1,49 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 
+// ─── CONFIG — paste your Supabase keys here ───────────────────────────────────
+const SUPA_URL = "https://fxnfnxfjuwwoxwzlabix.supabase.co";
+const SUPA_KEY = "sb_publishable_Jpkmj4u-EUSEOcKWaAcRBw_ma4pROXy";
+
+// ─── Supabase REST helper ─────────────────────────────────────────────────────
+const sb = {
+  headers: {
+    "Content-Type": "application/json",
+    "apikey": SUPA_KEY,
+    "Authorization": `Bearer ${SUPA_KEY}`,
+  },
+  url: (path, qs="") => `${SUPA_URL}/rest/v1/${path}${qs}`,
+
+  async all() {
+    const r = await fetch(sb.url("transactions","?order=created_at.desc"), { headers:{...sb.headers,"Prefer":"return=representation"} });
+    if(!r.ok) throw new Error(await r.text());
+    const rows = await r.json();
+    return rows.map(r=>({ id:r.id, date:r.date, description:r.description, category:r.category, method:r.method, type:r.type, amount:Number(r.amount) }));
+  },
+
+  async insert(t) {
+    const r = await fetch(sb.url("transactions"), { method:"POST", headers:{...sb.headers,"Prefer":"return=representation"}, body:JSON.stringify({date:t.date,description:t.description,category:t.category,method:t.method,type:t.type,amount:t.amount}) });
+    if(!r.ok) throw new Error(await r.text());
+    const [row] = await r.json();
+    return { id:row.id, date:row.date, description:row.description, category:row.category, method:row.method, type:row.type, amount:Number(row.amount) };
+  },
+
+  async update(t) {
+    const r = await fetch(sb.url("transactions",`?id=eq.${t.id}`), { method:"PATCH", headers:{...sb.headers,"Prefer":"return=representation"}, body:JSON.stringify({date:t.date,description:t.description,category:t.category,method:t.method,type:t.type,amount:t.amount}) });
+    if(!r.ok) throw new Error(await r.text());
+  },
+
+  async remove(id) {
+    const r = await fetch(sb.url("transactions",`?id=eq.${id}`), { method:"DELETE", headers:sb.headers });
+    if(!r.ok) throw new Error(await r.text());
+  },
+
+  async clearAll() {
+    const r = await fetch(sb.url("transactions","?id=gte.0"), { method:"DELETE", headers:sb.headers });
+    if(!r.ok) throw new Error(await r.text());
+  },
+};
+
+// ─── localStorage — profile & budget only ────────────────────────────────────
 const LS = {
   get:(k,fb)=>{ try{const v=localStorage.getItem(k);return v?JSON.parse(v):fb;}catch{return fb;} },
   set:(k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v));}catch{} },
@@ -776,7 +820,9 @@ const NAV=[
 export default function App(){
   const [loggedIn,sLI]=useState(false);
   const [tab,sTab]=useState("dashboard");
-  const [txns,sTxns]=useState(()=>LS.get("gulak_txns",[]));
+  const [txns,sTxns]=useState([]);
+  const [loading,sLoad]=useState(true);
+  const [dbErr,sDbErr]=useState("");
   const [budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
   const [profile,sProfileRaw]=useState(()=>LS.get("gulak_profile",DEFAULT_PROFILE));
   const [editTarget,sET]=useState(null);
@@ -784,21 +830,65 @@ export default function App(){
   const [delId,sDel]=useState(null);
   const [alert,sAlert]=useState(null);
 
-  useEffect(()=>{LS.set("gulak_txns",txns);},[txns]);
+  useEffect(()=>{
+    sb.all()
+      .then(rows=>{sTxns(rows);sLoad(false);})
+      .catch(e=>{sDbErr(e.message);sLoad(false);});
+  },[]);
+
   useEffect(()=>{LS.set("gulak_budget",budget);},[budget]);
   const setProfile=fn=>{sProfileRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);return next;});};
 
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
-  const handleAdd=t=>{const id=Math.max(0,...(txns.length?txns.map(x=>x.id):[0]))+1;sTxns(p=>[...p,{...t,id}]);toast2("Transaction saved");};
-  const handleUpdate=t=>{sTxns(p=>p.map(x=>x.id===t.id?t:x));sET(null);toast2("Updated");};
+
+  const handleAdd=async t=>{
+    try{const saved=await sb.insert(t);sTxns(p=>[saved,...p]);toast2("Transaction saved");}
+    catch(e){toast2("Save failed: "+e.message,"err");}
+  };
+  const handleUpdate=async t=>{
+    try{await sb.update(t);sTxns(p=>p.map(x=>x.id===t.id?t:x));sET(null);toast2("Updated");}
+    catch(e){toast2("Update failed: "+e.message,"err");}
+  };
   const handleEdit=t=>{sET(t);sTab("entry");};
-  const handleDelete=()=>{sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");};
-  const clearData=()=>{if(window.confirm("Delete ALL transactions? Cannot be undone.")){sTxns([]);toast2("Data cleared","err");}};
+  const handleDelete=async()=>{
+    try{await sb.remove(delId);sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");}
+    catch(e){toast2("Delete failed: "+e.message,"err");}
+  };
+  const clearData=async()=>{
+    if(!window.confirm("Delete ALL transactions? Cannot be undone."))return;
+    try{await sb.clearAll();sTxns([]);toast2("All data cleared","err");}
+    catch(e){toast2("Failed: "+e.message,"err");}
+  };
 
   const dn=profile.displayName||profile.username;
   const tSpend=txns.filter(t=>t.type==="debit"&&t.date===today()).reduce((s,t)=>s+t.amount,0);
   const bp=pct(tSpend,budget);
   const bc=bp>=100?C.red:bp>=80?C.orange:V;
+
+  if(loading) return(
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <div style={{width:36,height:36,border:`3px solid ${C.bord}`,borderTop:`3px solid ${V}`,borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>
+      <div style={{fontSize:13,color:C.sub,letterSpacing:"0.02em"}}>Connecting to database...</div>
+    </div>
+  );
+
+  if(dbErr) return(
+    <div style={{minHeight:"100vh",background:C.bg,display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div style={{width:500,background:C.surf,border:`1px solid rgba(244,63,94,.3)`,borderRadius:16,padding:36}}>
+        <div style={{fontSize:15,fontWeight:700,color:C.red,marginBottom:10}}>Database not configured</div>
+        <div style={{fontSize:13,color:C.sub,lineHeight:1.75,marginBottom:20}}>
+          Open <code style={{background:C.raised,padding:"2px 7px",borderRadius:5,color:V,fontSize:12}}>src/App.jsx</code> and replace the two placeholder values at the top with your Supabase URL and anon key.
+        </div>
+        <div style={{background:C.raised,borderRadius:9,padding:"14px 18px",fontFamily:"monospace",fontSize:12,color:C.sub,lineHeight:2,marginBottom:16}}>
+          <span style={{color:C.dim}}>// Lines 3–4 in App.jsx</span><br/>
+          <span style={{color:VL}}>const</span> SUPA_URL = <span style={{color:C.green}}>"https://xxxx.supabase.co"</span>;<br/>
+          <span style={{color:VL}}>const</span> SUPA_KEY = <span style={{color:C.green}}>"eyJ..."</span>;
+        </div>
+        <div style={{fontSize:11,color:C.dim}}>Error: {dbErr}</div>
+      </div>
+    </div>
+  );
 
   return(
     <div style={{fontFamily:"-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',system-ui,sans-serif",background:C.bg,minHeight:"100vh",color:C.text}}>
