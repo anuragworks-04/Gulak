@@ -114,25 +114,30 @@ function Login({onLogin,profile,T}) {
 }
 
 // TOP BAR — Paisa-exact layout
-function TopBar({view,setView,setTab,profile,dark,toggleDark,budget,tSpend,T,onAdd,selMonth,setSelMonth,selYear,setSelYear}) {
+function TopBar({tab,setTab,view,setView,profile,dark,toggleDark,budget,tSpend,T,onAdd,selMonth,setSelMonth,selYear,setSelYear}) {
   const dn=profile.displayName||profile.username;
-  // Budget % shown ONLY when viewing current month
   const nowM=new Date().getMonth();const nowY=new Date().getFullYear();
   const isCurrent=selMonth===nowM&&selYear===nowY;
   const bp=isCurrent?pct(tSpend,budget):0;
   const bc=bp>=100?T.red:bp>=80?"#f97316":T.green;
   const prevMonth=()=>{if(selMonth===0){setSelMonth(11);setSelYear(y=>y-1);}else setSelMonth(m=>m-1);};
   const nextMonth=()=>{if(selMonth===11){setSelMonth(0);setSelYear(y=>y+1);}else setSelMonth(m=>m+1);};
+  const navBtn=(t,label,activeColor)=>{
+    const isActive=tab===t;
+    return(
+      <button onClick={()=>setTab(t)} style={{display:"flex",alignItems:"center",gap:6,padding:"8px 18px",borderRadius:99,border:"none",fontFamily:"inherit",fontSize:13.5,fontWeight:isActive?700:500,transition:"all .2s",background:isActive?activeColor:"transparent",color:isActive?"white":T.sub,boxShadow:isActive?`0 2px 10px ${activeColor}60`:"none",whiteSpace:"nowrap"}}>
+        {label}
+      </button>
+    );
+  };
   return(
     <div style={{position:"sticky",top:0,zIndex:60,width:"100%",background:T.nav,backdropFilter:"blur(18px)",WebkitBackdropFilter:"blur(18px)",borderBottom:`1px solid ${T.bord}`}}>
-      <div style={{width:"100%",display:"flex",alignItems:"center",padding:"10px 28px",gap:16,minHeight:60}}>
-        {/* Expense / Income toggle */}
-        <div style={{display:"flex",background:T.raised,border:`1px solid ${T.bord}`,borderRadius:99,padding:3,gap:2,flexShrink:0}}>
-          {[["expense","🔴","Expenses"],["income","🟢","Received"]].map(([v,dot,lbl])=>(
-            <button key={v} onClick={()=>{setView(v);setTab("dashboard");}} style={{display:"flex",alignItems:"center",gap:7,padding:"8px 20px",borderRadius:99,border:"none",fontFamily:"inherit",fontSize:13.5,fontWeight:view===v?700:500,transition:"all .2s",background:view===v?(v==="expense"?"#dc2626":"#16a34a"):"transparent",color:view===v?"white":T.sub,boxShadow:view===v?(v==="expense"?"0 2px 10px rgba(220,38,38,.4)":"0 2px 10px rgba(22,163,74,.4)"):"none"}}>
-              <span style={{fontSize:9}}>{dot}</span>{lbl}
-            </button>
-          ))}
+      <div style={{width:"100%",display:"flex",alignItems:"center",padding:"10px 28px",gap:12,minHeight:60}}>
+        {/* Main nav tabs */}
+        <div style={{display:"flex",background:T.raised,border:`1px solid ${T.bord}`,borderRadius:99,padding:3,gap:1,flexShrink:0}}>
+          {navBtn("overview","🏠 Overview",T.gold)}
+          {navBtn("expense","🔴 Expenses","#dc2626")}
+          {navBtn("income","🟢 Income","#16a34a")}
         </div>
         {/* Month navigator — center */}
         <div style={{flex:1,display:"flex",justifyContent:"center"}}>
@@ -143,23 +148,21 @@ function TopBar({view,setView,setTab,profile,dark,toggleDark,budget,tSpend,T,onA
             {!isCurrent&&<button onClick={()=>{setSelMonth(nowM);setSelYear(nowY);}} title="Back to today" style={{width:26,height:26,borderRadius:"50%",border:`1px solid ${T.goldBord}`,background:T.goldBg,color:T.gold,fontSize:11,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,marginLeft:2}}>↩</button>}
           </div>
         </div>
-        {/* Right: Add + toggle + settings + avatar */}
-        <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-          <button onClick={onAdd} style={{display:"flex",alignItems:"center",gap:8,background:T.gold,border:"none",borderRadius:99,padding:"9px 22px",color:"white",fontWeight:700,fontSize:14,fontFamily:"inherit",boxShadow:`0 3px 14px ${T.gold}70`,transition:"all .2s",whiteSpace:"nowrap"}}>
-            <span style={{fontSize:17,lineHeight:1}}>＋</span>Add {view==="expense"?"Expense":"Income"}
+        {/* Right controls */}
+        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <button onClick={onAdd} style={{display:"flex",alignItems:"center",gap:7,background:T.gold,border:"none",borderRadius:99,padding:"9px 20px",color:"white",fontWeight:700,fontSize:13.5,fontFamily:"inherit",boxShadow:`0 3px 14px ${T.gold}70`,transition:"all .2s",whiteSpace:"nowrap"}}>
+            <span style={{fontSize:16,lineHeight:1}}>＋</span>Add
           </button>
-          <button onClick={toggleDark} style={{display:"flex",alignItems:"center",gap:6,background:T.raised,border:`1px solid ${T.bord}`,borderRadius:99,padding:"8px 15px",fontFamily:"inherit",fontSize:13,fontWeight:700,color:T.sub,transition:"all .2s"}}>
-            {dark?"☀️ Light":"🌙 Dark"}
+          <button onClick={toggleDark} style={{width:38,height:38,borderRadius:99,background:T.raised,border:`1px solid ${T.bord}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>
+            {dark?"☀️":"🌙"}
           </button>
-          <button onClick={()=>setTab("settings")} style={{width:38,height:38,borderRadius:99,background:T.raised,border:`1px solid ${T.bord}`,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .18s",fontSize:17}}>⚙️</button>
-          <button onClick={()=>setTab("budget")} style={{display:"flex",alignItems:"center",gap:6,background:T.raised,border:`1px solid ${T.bord}`,borderRadius:99,padding:"8px 15px",fontFamily:"inherit",fontSize:13,fontWeight:700,color:T.sub,transition:"all .2s"}}>
-            💰 Budget
-          </button>
-          <button onClick={()=>setTab("profile")} style={{display:"flex",alignItems:"center",gap:9,background:T.raised,border:`1px solid ${T.bord}`,borderRadius:99,padding:"5px 15px 5px 5px",fontFamily:"inherit",transition:"all .2s"}}>
+          <button onClick={()=>setTab("budget")} style={{width:38,height:38,borderRadius:99,background:tab==="budget"?T.goldBg:T.raised,border:`1px solid ${tab==="budget"?T.gold:T.bord}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>💰</button>
+          <button onClick={()=>setTab("settings")} style={{width:38,height:38,borderRadius:99,background:T.raised,border:`1px solid ${T.bord}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>⚙️</button>
+          <button onClick={()=>setTab("profile")} style={{display:"flex",alignItems:"center",gap:8,background:T.raised,border:`1px solid ${T.bord}`,borderRadius:99,padding:"5px 14px 5px 5px",fontFamily:"inherit",transition:"all .2s"}}>
             <div style={{width:30,height:30,borderRadius:"50%",background:T.gold,overflow:"hidden",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               {profile.photo?<img src={profile.photo} alt="" style={{width:"100%",height:"100%",objectFit:"cover"}}/>:<span style={{fontSize:14,fontWeight:900,color:"white"}}>{dn[0].toUpperCase()}</span>}
             </div>
-            <span style={{fontSize:13.5,fontWeight:600,color:T.text}}>{dn}</span>
+            <span style={{fontSize:13,fontWeight:600,color:T.text}}>{dn}</span>
           </button>
         </div>
       </div>
@@ -174,9 +177,177 @@ function TopBar({view,setView,setTab,profile,dark,toggleDark,budget,tSpend,T,onA
           <div style={{width:70,height:5,background:T.bord,borderRadius:99,overflow:"hidden"}}><div style={{width:bp+"%",height:"100%",background:bc,borderRadius:99,transition:"width .5s"}}/></div>
           <span style={{fontSize:12,fontWeight:700,color:bc}}>{bp}%</span>
         </div>}
-        {budget>0&&!isCurrent&&<div style={{display:"flex",alignItems:"center",gap:7}}>
-          <span style={{fontSize:12,color:T.dim}}>Viewing {MONTHS[selMonth]} {selYear}</span>
+        {!isCurrent&&<span style={{fontSize:12,color:T.dim}}>Viewing {MONTHS[selMonth]} {selYear}</span>}
+      </div>
+    </div>
+  );
+}
+
+
+// OVERVIEW
+function Overview({txns,budget,bankBalance,name,T,setTab,setView,selMonth,selYear}) {
+  const nowM=new Date().getMonth();const nowY=new Date().getFullYear();
+  const isCurrent=selMonth===nowM&&selYear===nowY;
+  const P={padding:"22px 24px"};
+  const SL={fontSize:11,fontWeight:600,color:T.sub,letterSpacing:".07em",textTransform:"uppercase",marginBottom:12};
+  const h=new Date().getHours();const greet=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
+
+  // Month totals
+  const monthTxns=useMemo(()=>txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth;}),[txns,selMonth,selYear]);
+  const monthSpent=monthTxns.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0);
+  const monthReceived=monthTxns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
+
+  // Monthly budget
+  const dim=new Date(selYear,selMonth+1,0).getDate();
+  const monthlyBudget=budget>0?budget*dim:0;
+  const monthLeft=Math.max(0,monthlyBudget-monthSpent);
+  const monthPct=monthlyBudget>0?Math.min(100,Math.round(monthSpent/monthlyBudget*100)):0;
+  const mbc=monthPct>=100?T.red:monthPct>=80?"#f97316":T.green;
+
+  // Lifetime savings: sum of (daily_budget - spent) for every day with a budget
+  const lifetimeSavings=useMemo(()=>{
+    if(!budget)return 0;
+    const dayMap={};
+    txns.filter(t=>t.type==="debit").forEach(t=>{dayMap[t.date]=(dayMap[t.date]||0)+t.amount;});
+    return Object.entries(dayMap).reduce((sum,[date,spent])=>sum+(budget-spent),0);
+  },[txns,budget]);
+
+  // Today
+  const todayKey=today();
+  const todaySpend=isCurrent?txns.filter(t=>t.type==="debit"&&t.date===todayKey).reduce((s,t)=>s+t.amount,0):0;
+  const todayLeft=Math.max(0,budget-todaySpend);
+  const bp=isCurrent&&budget>0?pct(todaySpend,budget):0;
+  const bc=bp>=100?T.red:bp>=80?"#f97316":T.green;
+
+  // Category breakdown (expenses)
+  const catMap=useMemo(()=>{const m={};monthTxns.filter(t=>t.type==="debit").forEach(t=>{m[t.category]=(m[t.category]||0)+t.amount;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);},[monthTxns]);
+
+  // Daily spend last 30 days for sparkline
+  const last30=useMemo(()=>{const arr=[];for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const spend=txns.filter(t=>t.type==="debit"&&t.date===k).reduce((s,t)=>s+t.amount,0);arr.push({k,spend,day:d.getDate()});}return arr;},[txns]);
+  const maxSpend=Math.max(...last30.map(d=>d.spend),budget||1);
+
+  // Recent 5 transactions (both types)
+  const recentTxns=[...txns].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).slice(0,5);
+
+  return(
+    <div className="anim" style={{display:"flex",flexDirection:"column",gap:20,width:"100%"}}>
+      {/* Greeting */}
+      <div>
+        <div style={{fontSize:13,color:T.sub,marginBottom:3}}>{new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+        <div style={{fontSize:28,fontWeight:900,color:T.text,letterSpacing:"-0.04em"}}>{greet}, {name} 👋</div>
+        <div style={{fontSize:14,color:T.sub,marginTop:4}}>Here's your complete financial snapshot</div>
+      </div>
+
+      {/* 4 stat cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14}}>
+        <div className="card hov" style={{...P,background:T.redBg,borderColor:T.redBord}}>
+          <div style={SL}>Spent</div>
+          <div style={{fontSize:28,fontWeight:900,color:T.red,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthSpent)}</div>
+          <div style={{fontSize:12,color:T.sub,marginTop:8}}>{monthTxns.filter(t=>t.type==="debit").length} expenses · {MONTHS[selMonth].slice(0,3)}</div>
+        </div>
+        <div className="card hov" style={{...P,background:T.greenBg,borderColor:T.greenBord}}>
+          <div style={SL}>Received</div>
+          <div style={{fontSize:28,fontWeight:900,color:T.green,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthReceived)}</div>
+          <div style={{fontSize:12,color:T.sub,marginTop:8}}>{monthTxns.filter(t=>t.type==="credit").length} entries · {MONTHS[selMonth].slice(0,3)}</div>
+        </div>
+        <div className="card hov" style={{...P,background:T.VBg,borderColor:T.VBord}}>
+          <div style={SL}>🏦 Bank Balance</div>
+          <div style={{fontSize:28,fontWeight:900,color:T.V,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(bankBalance)}</div>
+          <div style={{fontSize:12,color:T.sub,marginTop:8}}>UPI · Bank Transfer · Debit</div>
+        </div>
+        <div className="card hov" style={{...P,background:lifetimeSavings>=0?T.greenBg:T.redBg,borderColor:lifetimeSavings>=0?T.greenBord:T.redBord}}>
+          <div style={SL}>💰 Lifetime Savings</div>
+          <div style={{fontSize:28,fontWeight:900,color:lifetimeSavings>=0?T.green:T.red,letterSpacing:"-0.05em",lineHeight:1}}>{lifetimeSavings>=0?"+":""}{fmt(lifetimeSavings)}</div>
+          <div style={{fontSize:12,color:T.sub,marginTop:8}}>daily budget − daily spend</div>
+        </div>
+      </div>
+
+      {/* Budget row */}
+      {budget>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        {isCurrent&&<div className="card" style={P}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <span style={{fontSize:14,fontWeight:700,color:T.text}}>Today's Budget</span>
+            <span style={{fontSize:14,fontWeight:900,color:bc}}>{bp}%</span>
+          </div>
+          <Bar val={todaySpend} max={budget} color={bc} h={7} T={T}/>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.sub,marginTop:8}}>
+            <span>Spent {fmt(todaySpend)}</span><span style={{color:bc,fontWeight:700}}>Left {fmt(todayLeft)}</span>
+          </div>
         </div>}
+        <div className="card" style={P}>
+          <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+            <span style={{fontSize:14,fontWeight:700,color:T.text}}>Monthly Budget</span>
+            <span style={{fontSize:14,fontWeight:900,color:mbc}}>{monthPct}%</span>
+          </div>
+          <Bar val={monthSpent} max={monthlyBudget} color={mbc} h={7} T={T}/>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:T.sub,marginTop:8}}>
+            <span>Spent {fmt(monthSpent)}</span><span style={{color:mbc,fontWeight:700}}>Left {fmt(monthLeft)} of {fmt(monthlyBudget)}</span>
+          </div>
+        </div>
+      </div>}
+
+      {/* Charts row */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+        {/* Category breakdown */}
+        <div className="card" style={P}>
+          <div style={SL}>📊 Top Categories — {MONTHS[selMonth]}</div>
+          {catMap.length===0?<div style={{color:T.dim,fontSize:13}}>No expenses yet.</div>:
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {catMap.slice(0,5).map(([cat,amt])=>(
+                <div key={cat}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{fontSize:13,color:T.text,fontWeight:500}}>{CAT_ICON[cat]||"📦"} {cat}</span><span style={{fontSize:13,fontWeight:700,color:T.gold}}>{fmt(amt)}</span></div>
+                  <Bar val={amt} max={catMap[0]?.[1]||1} color={T.gold} T={T} h={4}/>
+                </div>
+              ))}
+            </div>
+          }
+        </div>
+        {/* 30-day sparkline */}
+        <div className="card" style={P}>
+          <div style={SL}>📈 Daily Spend — Last 30 Days</div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:2,height:90,marginBottom:8}}>
+            {last30.map(d=>{
+              const h2=d.spend>0?Math.max(Math.round(d.spend/maxSpend*100),3):0;
+              const ov=budget>0&&d.spend>budget;const wn=budget>0&&d.spend>=budget*.8&&!ov;
+              const isToday=d.k===todayKey;
+              return(
+                <div key={d.k} title={`${d.k}: ${fmt(d.spend)}`} style={{flex:1,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",gap:2}}>
+                  <div style={{width:"100%",background:ov?T.red:wn?"#f97316":isToday?T.gold:d.spend>0?T.V:T.bord,borderRadius:"3px 3px 0 0",height:h2+"%",opacity:.85,transition:"height .4s"}}/>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.dim}}>
+            <span>{last30[0]?.k.slice(5)}</span><span>Today</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent transactions */}
+      <div className="card" style={{overflow:"hidden"}}>
+        <div style={{padding:"14px 24px",borderBottom:`1px solid ${T.bord}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{...SL,marginBottom:0}}>Recent Transactions</span>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setView("expense");setTab("expense");}} style={{fontSize:12,color:T.red,background:T.redBg,border:`1px solid ${T.redBord}`,borderRadius:99,padding:"4px 12px",fontFamily:"inherit",fontWeight:600}}>See Expenses →</button>
+            <button onClick={()=>{setView("income");setTab("income");}} style={{fontSize:12,color:T.green,background:T.greenBg,border:`1px solid ${T.greenBord}`,borderRadius:99,padding:"4px 12px",fontFamily:"inherit",fontWeight:600}}>See Income →</button>
+          </div>
+        </div>
+        {recentTxns.length===0?<div style={{padding:"40px",textAlign:"center",color:T.dim,fontSize:14}}>No transactions yet.</div>:(
+          <div>
+            {recentTxns.map((t,i)=>(
+              <div key={t.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"13px 24px",borderTop:i>0?`1px solid ${T.bord}`:"none"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:t.type==="debit"?T.redBg:T.greenBg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{CAT_ICON[t.category]||"📦"}</div>
+                  <div>
+                    <div style={{fontSize:13.5,fontWeight:600,color:T.text}}>{t.description}</div>
+                    <div style={{fontSize:11,color:T.sub,marginTop:2}}>{t.date} · {t.category} · {t.method}</div>
+                  </div>
+                </div>
+                <div style={{fontSize:16,fontWeight:900,color:t.type==="debit"?T.red:T.green,letterSpacing:"-0.03em"}}>{t.type==="debit"?"−":"+"}{fmt(t.amount)}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -217,19 +388,12 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
         const monthLeft=Math.max(0,monthlyBudget-monthSpent);
         const monthPct=monthlyBudget>0?Math.min(100,Math.round(monthSpent/monthlyBudget*100)):0;
         const mbc=monthPct>=100?T.red:monthPct>=80?"#f97316":T.green;
-        // Lifetime savings: sum of (budget_pool - spent) across all months, can go negative
+        // Lifetime savings: sum of (daily_budget - spent) for every day that has transactions
         const lifetimeSavings=(()=>{
           if(!budget)return 0;
-          const monthSet=new Set(txns.map(t=>t.date.slice(0,7)));
-          let total2=0;
-          monthSet.forEach(ym=>{
-            const[y,m]=ym.split("-").map(Number);
-            const days=new Date(y,m,0).getDate();
-            const pool=budget*days;
-            const spent2=txns.filter(t=>t.date.startsWith(ym)&&t.type==="debit").reduce((s,t)=>s+t.amount,0);
-            total2+=(pool-spent2);
-          });
-          return total2;
+          const dayMap={};
+          txns.filter(t=>t.type==="debit").forEach(t=>{dayMap[t.date]=(dayMap[t.date]||0)+t.amount;});
+          return Object.entries(dayMap).reduce((sum,[,spent])=>sum+(budget-spent),0);
         })();
         return(<>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:14}}>
@@ -743,7 +907,7 @@ function ProfilePage({profile,setProfile,onLogout,onClear,T,customCats,setCustom
 // ROOT
 const DEF_PROFILE={username:"admin",password:"admin123",displayName:"",photo:null};
 export default function App() {
-  const[loggedIn,sLI]=useState(false);const[tab,sTab]=useState("dashboard");const[view,sView]=useState("expense");
+  const[loggedIn,sLI]=useState(false);const[tab,sTab]=useState("overview");const[view,sView]=useState("expense");
   const[txns,sTxns]=useState([]);const[loading,sLoad]=useState(true);const[dbErr,sDbErr]=useState("");
   const[budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
   const[bankBalance,setBankBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
@@ -808,9 +972,10 @@ export default function App() {
       {toast&&<div style={{position:"fixed",top:18,right:18,zIndex:200,background:T.surf,border:`1px solid ${toast.type==="err"?T.redBord:T.goldBord}`,borderRadius:11,padding:"12px 20px",color:toast.type==="err"?T.red:T.gold,fontSize:14,fontWeight:600,boxShadow:T.shadowLg,animation:"fadeIn .25s both"}}>{toast.msg}</div>}
       {delId!==null&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:150,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{background:T.surf,border:`1px solid ${T.bord}`,borderRadius:16,padding:28,width:320,textAlign:"center",boxShadow:T.shadowLg}}><div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:8}}>Delete transaction?</div><div style={{fontSize:14,color:T.sub,marginBottom:22}}>This cannot be undone.</div><div style={{display:"flex",gap:10}}><button onClick={()=>sDel(null)} style={{flex:1,background:T.raised,border:`1px solid ${T.bord}`,borderRadius:9,padding:"11px",color:T.sub,fontFamily:"inherit",fontSize:14}}>Cancel</button><button onClick={handleDelete} style={{flex:1,background:T.redBg,border:`1px solid ${T.redBord}`,borderRadius:9,padding:"11px",color:T.red,fontWeight:700,fontFamily:"inherit",fontSize:14}}>Delete</button></div></div></div>}
       {loggedIn&&<>
-        <TopBar view={view} setView={sView} setTab={t=>{sTab(t);if(t!=="entry")sET(null);}} profile={profile} dark={dark} toggleDark={()=>setDark(d=>!d)} budget={budget} tSpend={tSpend} T={T} onAdd={()=>{sET(null);sTab("entry");}} selMonth={selMonth} setSelMonth={setSelMonth} selYear={selYear} setSelYear={setSelYear}/>
+        <TopBar tab={tab} setTab={t=>{sTab(t);if(t!=="entry")sET(null);}} view={view} setView={sView} profile={profile} dark={dark} toggleDark={()=>setDark(d=>!d)} budget={budget} tSpend={tSpend} T={T} onAdd={()=>{sET(null);sTab("entry");}} selMonth={selMonth} setSelMonth={setSelMonth} selYear={selYear} setSelYear={setSelYear}/>
         <div style={{flex:1,width:"100%",padding:"28px 32px",boxSizing:"border-box"}}>
-          {tab==="dashboard"&&<Dashboard txns={txns} budget={budget} name={dn} T={T} view={view} onEdit={handleEdit} onDelete={sDel} customCats={customCats} selMonth={selMonth} selYear={selYear} bankBalance={bankBalance}/>}
+          {tab==="overview"&&<Overview txns={txns} budget={budget} bankBalance={bankBalance} name={dn} T={T} setTab={t=>{sTab(t);}} setView={sView} selMonth={selMonth} selYear={selYear}/>}
+          {(tab==="expense"||tab==="income")&&<Dashboard txns={txns} budget={budget} name={dn} T={T} view={tab==="expense"?"expense":"income"} onEdit={handleEdit} onDelete={sDel} customCats={customCats} selMonth={selMonth} selYear={selYear} bankBalance={bankBalance}/>}
           {tab==="monthly"&&<Monthly txns={txns} budget={budget} T={T} view={view} selMonth={selMonth} setSelMonth={setSelMonth} selYear={selYear} setSelYear={setSelYear}/>}
           {tab==="budget"&&<Budget txns={txns} budget={budget} setBudget={sBudget} T={T} selMonth={selMonth} selYear={selYear}/>}
           {tab==="entry"&&<NewEntry txns={txns} editTarget={editTarget} onAdd={handleAdd} onUpdate={handleUpdate} onCancel={()=>{sET(null);sTab("dashboard");}} budget={budget} setAlert={sAlert} T={T} customCats={customCats} view={view}/>}
