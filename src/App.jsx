@@ -93,52 +93,22 @@ function Bar({val,max,color,h=5,T}) {
   return <div style={{background:T.mode==="dark"?"rgba(255,255,255,.06)":"rgba(0,0,0,.07)",borderRadius:99,height:h,overflow:"hidden"}}><div style={{width:w+"%",height:"100%",background:color,borderRadius:99,transition:"width .7s cubic-bezier(.22,1,.36,1)"}}/></div>;
 }
 
-// ─── MITTI GULLAK ILLUSTRATION ───────────────────────────────────────────────
-function GullakIllustration({size=80}) {
+// ─── GULLAK LOGO MARK — minimal geometric, fintech aesthetic ─────────────────
+function GullakIllustration({size=80,color="#E8693A"}) {
+  // A stylised coin dropping into a pot: circle with a rectangular slot, clean lines
+  const s=size;
   return(
-    <svg width={size} height={size} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Body — round mitti pot */}
-      <ellipse cx="58" cy="72" rx="42" ry="38" fill="#C1762A"/>
-      <ellipse cx="58" cy="72" rx="42" ry="38" fill="url(#bodyGrad)"/>
-      {/* Clay texture highlight */}
-      <ellipse cx="44" cy="58" rx="14" ry="10" fill="#D4893A" opacity="0.5"/>
-      {/* Neck */}
-      <rect x="44" y="36" width="28" height="14" rx="7" fill="#B5661E"/>
+    <svg width={s} height={s} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Pot body — rounded trapezoid */}
+      <path d="M7 17 Q6 34 20 36 Q34 34 33 17 Z" fill={color} opacity="0.15"/>
+      <path d="M7 17 Q6 34 20 36 Q34 34 33 17 Z" stroke={color} strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
+      {/* Pot rim */}
+      <path d="M5 17 Q5 14 20 14 Q35 14 35 17" stroke={color} strokeWidth="1.8" strokeLinecap="round" fill="none"/>
       {/* Coin slot */}
-      <rect x="50" y="32" width="16" height="4" rx="2" fill="#7A4010"/>
-      {/* Snout / nose — little bump */}
-      <ellipse cx="100" cy="76" rx="10" ry="8" fill="#B5661E"/>
-      <ellipse cx="100" cy="76" rx="6" ry="5" fill="#9A5214"/>
-      {/* Nostrils */}
-      <circle cx="97" cy="77" r="1.5" fill="#7A4010"/>
-      <circle cx="103" cy="77" r="1.5" fill="#7A4010"/>
-      {/* Eyes */}
-      <circle cx="86" cy="58" r="5" fill="#FDF0E0"/>
-      <circle cx="87" cy="58" r="3" fill="#2C1A08"/>
-      <circle cx="88" cy="57" r="1" fill="white"/>
-      {/* Ear */}
-      <ellipse cx="62" cy="36" rx="7" ry="5" fill="#B5661E" transform="rotate(-15 62 36)"/>
-      <ellipse cx="62" cy="37" rx="4" ry="3" fill="#E8916A" transform="rotate(-15 62 37)"/>
-      {/* Legs */}
-      <rect x="26" y="102" width="14" height="12" rx="5" fill="#A85A18"/>
-      <rect x="44" y="104" width="14" height="10" rx="5" fill="#A85A18"/>
-      <rect x="62" y="104" width="14" height="10" rx="5" fill="#A85A18"/>
-      <rect x="80" y="102" width="14" height="12" rx="5" fill="#A85A18"/>
-      {/* Tail */}
-      <path d="M16 70 Q6 60 10 48 Q14 36 20 44" stroke="#B5661E" strokeWidth="4" strokeLinecap="round" fill="none"/>
-      {/* Coin going in */}
-      <ellipse cx="58" cy="29" rx="7" ry="3" fill="#F5A623" opacity="0.9"/>
-      <ellipse cx="58" cy="29" rx="5" ry="2" fill="#FFD166" opacity="0.7"/>
-      {/* Crack texture */}
-      <path d="M70 80 Q74 74 72 68" stroke="#9A5214" strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
-      <path d="M40 85 Q36 80 38 74" stroke="#9A5214" strokeWidth="1" strokeLinecap="round" opacity="0.4"/>
-      {/* Gradient def */}
-      <defs>
-        <radialGradient id="bodyGrad" cx="35%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#E8916A" stopOpacity="0.5"/>
-          <stop offset="100%" stopColor="#7A3A08" stopOpacity="0.3"/>
-        </radialGradient>
-      </defs>
+      <rect x="16" y="12" width="8" height="2.5" rx="1.25" fill={color}/>
+      {/* Coin — small circle above slot with motion lines */}
+      <circle cx="20" cy="7.5" r="3" stroke={color} strokeWidth="1.5" fill="none"/>
+      <line x1="20" y1="10.5" x2="20" y2="11.5" stroke={color} strokeWidth="1.2" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -154,7 +124,7 @@ function Login({onLogin,profile,T}) {
         {/* Gullak illustration + branding */}
         <div style={{textAlign:"center",marginBottom:40}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
-            <GullakIllustration size={96}/>
+            <GullakIllustration size={88} color={T.terra}/>
           </div>
           <div style={{fontSize:32,fontWeight:900,color:T.terra,letterSpacing:"-0.05em",fontFamily:"'Inter',sans-serif"}}>Gullak</div>
           <div style={{fontSize:14,color:T.sub,marginTop:6,lineHeight:1.5}}>आपकी अपनी गुल्लक 🏺<br/><span style={{fontSize:12}}>Track every rupee, own your story</span></div>
@@ -196,7 +166,7 @@ function TopBar({tab,setTab,view,setView,profile,dark,toggleDark,budget,tSpend,T
       <div style={{width:"100%",display:"flex",alignItems:"center",padding:"10px 28px",gap:14,minHeight:64}}>
         {/* Logo */}
         <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,marginRight:4}}>
-          <GullakIllustration size={36}/>
+          <GullakIllustration size={32} color={T.terra}/>
           <span style={{fontSize:18,fontWeight:900,color:T.terra,letterSpacing:"-0.04em"}}>Gullak</span>
         </div>
         {/* Nav tabs */}
@@ -263,32 +233,27 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
   const h=new Date().getHours();
   const greet=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
 
-  // All-time bank balance = total income - total expenses
   const bankBalance=useMemo(()=>{
     const inc=txns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
     const exp=txns.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0);
     return inc-exp;
   },[txns]);
 
-  // Month data
   const monthTxns=useMemo(()=>txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth;}),[txns,selMonth,selYear]);
   const monthSpent=monthTxns.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0);
   const monthReceived=monthTxns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
 
-  // Daily budget
   const todaySpent=isCurrent?txns.filter(t=>t.type==="debit"&&t.date===todayKey).reduce((s,t)=>s+t.amount,0):0;
   const todaySaved=budget>0?budget-todaySpent:0;
   const bp=budget>0&&isCurrent?pct(todaySpent,budget):0;
   const bc=bp>=100?T.terra:bp>=80?T.marigold:T.teal;
 
-  // Monthly budget
   const dim=new Date(selYear,selMonth+1,0).getDate();
   const monthPool=budget>0?budget*dim:0;
   const monthLeft=Math.max(0,monthPool-monthSpent);
   const monthPct=monthPool>0?Math.min(100,Math.round(monthSpent/monthPool*100)):0;
   const mbc=monthPct>=100?T.terra:monthPct>=80?T.marigold:T.teal;
 
-  // Lifetime savings (daily)
   const lifetimeSavings=useMemo(()=>{
     if(!budget)return 0;
     const dayMap={};
@@ -296,149 +261,149 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
     return Object.entries(dayMap).reduce((sum,[,spent])=>sum+(budget-spent),0);
   },[txns,budget]);
 
-  // Category breakdown
   const catMap=useMemo(()=>{const m={};monthTxns.filter(t=>t.type==="debit").forEach(t=>{m[t.category]=(m[t.category]||0)+t.amount;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);},[monthTxns]);
 
-  // Sparkline last 14 days
   const last14=useMemo(()=>{const arr=[];for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const spend=txns.filter(t=>t.type==="debit"&&t.date===k).reduce((s,t)=>s+t.amount,0);arr.push({k,spend,day:d.getDate()});}return arr;},[txns]);
   const maxS=Math.max(...last14.map(d=>d.spend),budget||1);
 
   const P={padding:"24px 28px"};
-  const chip=(label,val,color,bg,bord)=>(
-    <div style={{display:"flex",flexDirection:"column",gap:4,padding:"16px 20px",background:bg,border:`1px solid ${bord}`,borderRadius:14,flex:1,minWidth:0}}>
-      <div style={{fontSize:10.5,fontWeight:700,color,letterSpacing:".08em",textTransform:"uppercase"}}>{label}</div>
-      <div style={{fontSize:22,fontWeight:900,color,letterSpacing:"-0.04em",lineHeight:1}}>{val}</div>
-    </div>
-  );
+  const LBL={fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase"};
 
   return(
-    <div className="anim" style={{display:"flex",flexDirection:"column",gap:24,width:"100%",maxWidth:1100,margin:"0 auto"}}>
+    <div className="anim" style={{display:"flex",flexDirection:"column",gap:20,width:"100%",maxWidth:1100,margin:"0 auto"}}>
 
-      {/* ── HERO ── */}
+      {/* ── HERO ROW: greeting + bank balance ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:12}}>
         <div>
-          <div style={{fontSize:12.5,color:T.sub,marginBottom:4,letterSpacing:".04em"}}>{new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"})}</div>
-          <div style={{fontSize:26,fontWeight:900,color:T.text,letterSpacing:"-0.04em"}}>{greet}, {name} 👋</div>
+          <div style={{fontSize:12,color:T.sub,marginBottom:4,letterSpacing:".05em"}}>{new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long"})}</div>
+          <div style={{fontSize:28,fontWeight:900,color:T.text,letterSpacing:"-0.04em"}}>{greet}, {name}</div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{fontSize:11,color:T.sub,letterSpacing:".06em",textTransform:"uppercase",marginBottom:4}}>Bank Balance</div>
-          <div style={{fontSize:38,fontWeight:900,color:bankBalance>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{bankBalance>=0?"+":""}{fmt(bankBalance)}</div>
-          <div style={{fontSize:12,color:T.sub,marginTop:4}}>income − expenses, all time</div>
+          <div style={{...LBL,marginBottom:6}}>Bank Balance</div>
+          <div style={{fontSize:42,fontWeight:900,color:bankBalance>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{bankBalance>=0?"+":""}{fmt(bankBalance)}</div>
+          <div style={{fontSize:11.5,color:T.sub,marginTop:5}}>all-time income − expenses</div>
         </div>
       </div>
 
-      {/* ── DIVIDER ── */}
-      <div style={{height:1,background:`linear-gradient(to right, transparent, ${T.bord}, transparent)`}}/>
+      <div style={{height:1,background:`linear-gradient(to right,transparent,${T.bord},transparent)`}}/>
 
-      {/* ── THREE CONTEXT STRIPS ── */}
+      {/* ── ROW 1: Month summary (just spent + received, once) ── */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
-        {/* Today */}
-        <div className="card" style={{...P,position:"relative",overflow:"hidden"}}>
-          <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".08em",textTransform:"uppercase",marginBottom:16}}>Today</div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
-            <div>
-              <div style={{fontSize:11,color:T.sub,marginBottom:3}}>Spent</div>
-              <div style={{fontSize:26,fontWeight:900,color:T.terra,letterSpacing:"-0.04em"}}>{fmt(todaySpent)}</div>
-            </div>
-            {budget>0&&<div style={{textAlign:"right"}}>
-              <div style={{fontSize:11,color:T.sub,marginBottom:3}}>Saved today</div>
-              <div style={{fontSize:22,fontWeight:800,color:todaySaved>=0?T.teal:T.terra}}>{todaySaved>=0?"+":""}{fmt(todaySaved)}</div>
-            </div>}
-          </div>
-          {budget>0&&isCurrent&&<>
-            <Bar val={todaySpent} max={budget} color={bc} h={5} T={T}/>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.sub,marginTop:6}}>
-              <span>Limit {fmt(budget)}</span><span style={{color:bc,fontWeight:700}}>{bp}% used</span>
-            </div>
-          </>}
-          {!isCurrent&&<div style={{fontSize:12,color:T.dim}}>Not viewing current month</div>}
-        </div>
 
-        {/* This Month */}
-        <div className="card" style={{...P}}>
-          <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".08em",textTransform:"uppercase",marginBottom:16}}>{MONTHS[selMonth]}</div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:14}}>
+        {/* This month — spent & received together, once */}
+        <div className="card" style={P}>
+          <div style={{...LBL,marginBottom:18}}>{MONTHS[selMonth]} Summary</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
             <div>
-              <div style={{fontSize:11,color:T.sub,marginBottom:3}}>Spent</div>
-              <div style={{fontSize:26,fontWeight:900,color:T.terra,letterSpacing:"-0.04em"}}>{fmt(monthSpent)}</div>
+              <div style={{fontSize:11,color:T.sub,marginBottom:4}}>Spent</div>
+              <div style={{fontSize:30,fontWeight:900,color:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthSpent)}</div>
             </div>
             <div style={{textAlign:"right"}}>
-              <div style={{fontSize:11,color:T.sub,marginBottom:3}}>Received</div>
-              <div style={{fontSize:22,fontWeight:800,color:T.teal}}>{fmt(monthReceived)}</div>
+              <div style={{fontSize:11,color:T.sub,marginBottom:4}}>Received</div>
+              <div style={{fontSize:24,fontWeight:800,color:T.teal,letterSpacing:"-0.04em",lineHeight:1}}>{fmt(monthReceived)}</div>
             </div>
           </div>
-          {budget>0&&<>
-            <Bar val={monthSpent} max={monthPool} color={mbc} h={5} T={T}/>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:T.sub,marginTop:6}}>
-              <span>Budget {fmt(monthPool)}</span><span style={{color:mbc,fontWeight:700}}>{fmt(monthLeft)} left</span>
-            </div>
-          </>}
+          <button onClick={()=>setTab("expense")} style={{marginTop:18,fontSize:11.5,color:T.terra,background:"none",border:`1px solid ${T.terraBord}`,borderRadius:8,padding:"5px 12px",fontFamily:"inherit",fontWeight:600,cursor:"pointer"}}>View expenses →</button>
         </div>
 
-        {/* Lifetime */}
+        {/* Lifetime savings */}
         <div className="card" style={{...P,background:lifetimeSavings>=0?T.tealBg:T.terraBg,borderColor:lifetimeSavings>=0?T.tealBord:T.terraBord}}>
-          <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".08em",textTransform:"uppercase",marginBottom:16}}>Lifetime Savings</div>
-          <div style={{fontSize:36,fontWeight:900,color:lifetimeSavings>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1,marginBottom:8}}>
+          <div style={{...LBL,marginBottom:18}}>Lifetime Savings</div>
+          <div style={{fontSize:36,fontWeight:900,color:lifetimeSavings>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>
             {lifetimeSavings>=0?"+":""}{fmt(lifetimeSavings)}
           </div>
-          <div style={{fontSize:12,color:T.sub,lineHeight:1.5}}>Sum of daily<br/>budget − spent</div>
+          <div style={{fontSize:12,color:T.sub,marginTop:10,lineHeight:1.6}}>Daily budget − actual spend,<br/>every day cumulated</div>
+        </div>
+
+        {/* Sparkline */}
+        <div className="card" style={P}>
+          <div style={{...LBL,marginBottom:16}}>Last 14 Days</div>
+          <div style={{display:"flex",alignItems:"flex-end",gap:3,height:76}}>
+            {last14.map(d=>{
+              const h2=d.spend>0?Math.max(Math.round(d.spend/maxS*100),4):0;
+              const ov=budget>0&&d.spend>budget;
+              const isToday=d.k===todayKey;
+              return(
+                <div key={d.k} title={`${d.k}: ${fmt(d.spend)}`} style={{flex:1,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",gap:3}}>
+                  <div style={{width:"100%",background:ov?T.terra:isToday?T.marigold:d.spend>0?T.indigo:T.bord,borderRadius:"3px 3px 0 0",height:h2+"%",opacity:.9,transition:"height .5s"}}/>
+                  <div style={{fontSize:8,color:isToday?T.marigold:T.dim,fontWeight:isToday?700:400}}>{d.day}</div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* ── DIVIDER ── */}
-      <div style={{height:1,background:`linear-gradient(to right, transparent, ${T.bord}, transparent)`}}/>
+      {/* ── ROW 2: Budget cards (separate entity as requested) ── */}
+      {budget>0&&<>
+        <div style={{height:1,background:`linear-gradient(to right,transparent,${T.bord},transparent)`}}/>
+        <div>
+          <div style={{...LBL,marginBottom:14}}>Budget Tracker</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            {/* Daily budget */}
+            {isCurrent&&<div className="card" style={P}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+                <div>
+                  <div style={{...LBL,marginBottom:6}}>Today's Budget</div>
+                  <div style={{fontSize:30,fontWeight:900,color:bc,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(Math.max(0,budget-todaySpent))} <span style={{fontSize:14,fontWeight:500,color:T.sub}}>left</span></div>
+                </div>
+                <div style={{fontSize:28,fontWeight:900,color:bc,opacity:.3}}>{bp}%</div>
+              </div>
+              <Bar val={todaySpent} max={budget} color={bc} h={6} T={T}/>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,color:T.sub,marginTop:8}}>
+                <span>Spent {fmt(todaySpent)}</span>
+                <span>Limit {fmt(budget)}/day</span>
+              </div>
+              {todaySaved!==0&&<div style={{marginTop:12,fontSize:12.5,fontWeight:600,color:todaySaved>=0?T.teal:T.terra}}>{todaySaved>=0?"Saved":"Over by"} {fmt(Math.abs(todaySaved))} today</div>}
+            </div>}
+            {/* Monthly budget */}
+            <div className="card" style={P}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+                <div>
+                  <div style={{...LBL,marginBottom:6}}>{MONTHS[selMonth]} Budget</div>
+                  <div style={{fontSize:30,fontWeight:900,color:mbc,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthLeft)} <span style={{fontSize:14,fontWeight:500,color:T.sub}}>left</span></div>
+                </div>
+                <div style={{fontSize:28,fontWeight:900,color:mbc,opacity:.3}}>{monthPct}%</div>
+              </div>
+              <Bar val={monthSpent} max={monthPool} color={mbc} h={6} T={T}/>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,color:T.sub,marginTop:8}}>
+                <span>Spent {fmt(monthSpent)}</span>
+                <span>Pool {fmt(monthPool)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </>}
 
-      {/* ── INSIGHTS ROW ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr",gap:20}}>
-        {/* Category breakdown */}
-        <div className="card" style={P}>
-          <div style={{fontSize:11,fontWeight:700,color:T.sub,letterSpacing:".08em",textTransform:"uppercase",marginBottom:20}}>Where the money went · {MONTHS[selMonth].slice(0,3)}</div>
-          {catMap.length===0?
-            <div style={{color:T.dim,fontSize:13,padding:"20px 0",textAlign:"center"}}>No expenses this month</div>:
+      {/* ── ROW 3: Monthly insights ── */}
+      {catMap.length>0&&<>
+        <div style={{height:1,background:`linear-gradient(to right,transparent,${T.bord},transparent)`}}/>
+        <div>
+          <div style={{...LBL,marginBottom:14}}>Monthly Insights — Where the Money Went</div>
+          <div className="card" style={P}>
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               {catMap.slice(0,6).map(([cat,amt])=>{
                 const w=Math.round(amt/catMap[0][1]*100);
+                const pctOfMonth=monthSpent>0?Math.round(amt/monthSpent*100):0;
                 return(
                   <div key={cat}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:6}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:7,alignItems:"center"}}>
                       <span style={{fontSize:13.5,color:T.text,fontWeight:500}}>{CAT_ICON[cat]||"📦"} {cat}</span>
-                      <span style={{fontSize:13.5,fontWeight:700,color:T.marigold}}>{fmt(amt)}</span>
+                      <div style={{display:"flex",gap:12,alignItems:"center"}}>
+                        <span style={{fontSize:11,color:T.sub,background:T.raised,borderRadius:99,padding:"2px 8px"}}>{pctOfMonth}%</span>
+                        <span style={{fontSize:14,fontWeight:700,color:T.marigold,minWidth:72,textAlign:"right"}}>{fmt(amt)}</span>
+                      </div>
                     </div>
-                    <div style={{height:4,background:T.bord,borderRadius:99,overflow:"hidden"}}>
-                      <div style={{width:w+"%",height:"100%",background:T.marigold,borderRadius:99,transition:"width .7s cubic-bezier(.22,1,.36,1)"}}/>
+                    <div style={{height:3,background:T.bord,borderRadius:99,overflow:"hidden"}}>
+                      <div style={{width:w+"%",height:"100%",background:T.marigold,borderRadius:99,transition:"width .8s cubic-bezier(.22,1,.36,1)"}}/>
                     </div>
                   </div>
                 );
               })}
             </div>
-          }
-          <button onClick={()=>setTab("expense")} style={{marginTop:20,fontSize:12,color:T.terra,background:"none",border:`1px solid ${T.terraBord}`,borderRadius:8,padding:"6px 14px",fontFamily:"inherit",fontWeight:600,cursor:"pointer"}}>View all expenses →</button>
-        </div>
-
-        {/* Sparkline + quick stats */}
-        <div style={{display:"flex",flexDirection:"column",gap:16}}>
-          <div className="card" style={P}>
-            <div style={{fontSize:11,fontWeight:700,color:T.sub,letterSpacing:".08em",textTransform:"uppercase",marginBottom:16}}>Last 14 Days</div>
-            <div style={{display:"flex",alignItems:"flex-end",gap:3,height:72}}>
-              {last14.map(d=>{
-                const h2=d.spend>0?Math.max(Math.round(d.spend/maxS*100),4):0;
-                const ov=budget>0&&d.spend>budget;
-                const isToday=d.k===todayKey;
-                return(
-                  <div key={d.k} title={`${d.k}: ${fmt(d.spend)}`} style={{flex:1,height:"100%",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-end",gap:3}}>
-                    <div style={{width:"100%",background:ov?T.terra:isToday?T.marigold:d.spend>0?T.indigo:T.bord,borderRadius:"4px 4px 0 0",height:h2+"%",opacity:.9,transition:"height .5s"}}/>
-                    <div style={{fontSize:8,color:isToday?T.marigold:T.dim,fontWeight:isToday?700:400}}>{d.day}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div style={{display:"flex",gap:12}}>
-            {chip("This month spent",fmt(monthSpent),T.terra,T.terraBg,T.terraBord)}
-            {chip("This month in",fmt(monthReceived),T.teal,T.tealBg,T.tealBord)}
           </div>
         </div>
-      </div>
+      </>}
     </div>
   );
 }
@@ -453,88 +418,44 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
   const total=filtered.reduce((s,t)=>s+t.amount,0);
   const oTotal=opposite.reduce((s,t)=>s+t.amount,0);
   const net=isExp?oTotal-total:total-oTotal;
-  const todaySpend=isCurrent?txns.filter(t=>t.type==="debit"&&t.date===today()).reduce((s,t)=>s+t.amount,0):0;
-  const bp=isCurrent?pct(todaySpend,budget):0;const bc=bp>=100?T.terra:bp>=80?T.marigold:T.teal;
-  const h=new Date().getHours();const greet=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
   const catMap=useMemo(()=>{const m={};filtered.forEach(t=>{m[t.category]=(m[t.category]||0)+t.amount;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);},[filtered]);
   const metMap=useMemo(()=>{const m={};filtered.forEach(t=>{m[t.method]=(m[t.method]||0)+t.amount;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);},[filtered]);
   const accentC=isExp?T.terra:T.teal;const accentBg=isExp?T.terraBg:T.tealBg;const accentBo=isExp?T.terraBord:T.tealBord;
   const P={padding:"22px 24px"};const SL={fontSize:11,fontWeight:600,color:T.sub,letterSpacing:".07em",textTransform:"uppercase",marginBottom:14};
   return(
     <div className="anim" style={{display:"flex",flexDirection:"column",gap:20,width:"100%"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16,flexWrap:"wrap"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:16}}>
         <div>
-          <div style={{fontSize:13,color:T.sub,marginBottom:3}}>{new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
-          <div style={{fontSize:28,fontWeight:900,color:T.text,letterSpacing:"-0.04em"}}>{greet}, {name} 👋</div>
-          <div style={{fontSize:14,color:T.sub,marginTop:4}}>Here's your financial snapshot</div>
+          <div style={{fontSize:22,fontWeight:900,color:T.text,letterSpacing:"-0.03em"}}>{isExp?"Expenses":"Income"} <span style={{color:T.sub,fontWeight:400,fontSize:16}}>— {MONTHS[selMonth]} {selYear}</span></div>
+          <div style={{fontSize:13,color:T.sub,marginTop:3}}>{filtered.length} {isExp?"expense":"income"} entries</div>
         </div>
       </div>
-      {/* 3 stat cards */}
-      {(()=>{
-        const dim=new Date(selYear,selMonth+1,0).getDate();
-        const monthlyBudget=budget>0?budget*dim:0;
-        // total debits for selected month (all methods) = what's spent from monthly budget
-        const monthSpent=txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth&&t.type==="debit";}).reduce((s,t)=>s+t.amount,0);
-        const monthLeft=Math.max(0,monthlyBudget-monthSpent);
-        const monthPct=monthlyBudget>0?Math.min(100,Math.round(monthSpent/monthlyBudget*100)):0;
-        const mbc=monthPct>=100?T.terra:monthPct>=80?T.marigold:T.teal;
-        // Lifetime savings: sum of (daily_budget - spent) for every day that has transactions
-        const lifetimeSavings=(()=>{
-          if(!budget)return 0;
-          const dayMap={};
-          txns.filter(t=>t.type==="debit").forEach(t=>{dayMap[t.date]=(dayMap[t.date]||0)+t.amount;});
-          return Object.entries(dayMap).reduce((sum,[,spent])=>sum+(budget-spent),0);
-        })();
-        return(<>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:14}}>
-            {/* Card 1: Spent this month */}
-            <div className="card hov" style={{...P,background:accentBg,borderColor:accentBo}}>
-              <div style={SL}>{isExp?"Spent":"Received"}</div>
-              <div style={{fontSize:28,fontWeight:900,color:accentC,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(total)}</div>
-              <div style={{fontSize:12,color:T.sub,marginTop:8}}>{filtered.length} {isExp?"expenses":"entries"} · {MONTHS[selMonth].slice(0,3)}</div>
-            </div>
-            {/* Card 2: Bank Balance — auto: all income minus all expenses */}
-            {(()=>{const allInc=txns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);const allExp=txns.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0);const bb=allInc-allExp;return(
-            <div className="card hov" style={{...P,background:bb>=0?T.tealBg:T.terraBg,borderColor:bb>=0?T.tealBord:T.terraBord}}>
-              <div style={SL}>🏦 Bank Balance</div>
-              <div style={{fontSize:28,fontWeight:900,color:bb>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{bb>=0?"+":""}{fmt(bb)}</div>
-              <div style={{fontSize:12,color:T.sub,marginTop:8}}>Total income − Total expenses</div>
-            </div>
-            );})()}
-            {/* Card 3: Monthly Budget Left */}
-            {budget>0?(
-              <div className="card hov" style={{...P,background:monthLeft===0?T.terraBg:monthPct>=80?T.raised:T.tealBg,borderColor:monthLeft===0?T.terraBord:monthPct>=80?T.bord:T.tealBord}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-                  <div style={SL}>Budget Left</div>
-                  <span style={{fontSize:11,fontWeight:700,color:mbc,background:T.raised,borderRadius:99,padding:"2px 9px",marginTop:-2}}>{monthPct}%</span>
-                </div>
-                <div style={{fontSize:28,fontWeight:900,color:mbc,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthLeft)}</div>
-                <div style={{marginTop:8}}><Bar val={monthSpent} max={monthlyBudget} color={mbc} h={4} T={T}/></div>
-                <div style={{fontSize:12,color:T.sub,marginTop:6}}>{fmt(monthlyBudget)} pool · {dim}d × {fmt(budget)}</div>
-              </div>
-            ):(
-              <div className="card hov" style={{...P,background:net>=0?T.greenBg:T.redBg,borderColor:net>=0?T.greenBord:T.redBord}}>
-                <div style={SL}>Net Balance</div>
-                <div style={{fontSize:28,fontWeight:900,color:net>=0?T.green:T.red,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(net)}</div>
-                <div style={{fontSize:12,color:T.sub,marginTop:8}}>{net>=0?"surplus":"deficit"} this month</div>
-              </div>
-            )}
-            {/* Card 4: Lifetime Savings */}
-            <div className="card hov" style={{...P,background:lifetimeSavings>=0?T.tealBg:T.terraBg,borderColor:lifetimeSavings>=0?T.tealBord:T.terraBord}}>
-              <div style={SL}>💰 Lifetime Savings</div>
-              <div style={{fontSize:28,fontWeight:900,color:lifetimeSavings>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{lifetimeSavings>=0?"+":""}{fmt(lifetimeSavings)}</div>
-              <div style={{fontSize:12,color:T.sub,marginTop:8}}>budget pool − actual spend</div>
-            </div>
-          </div>
-          {budget>0&&isCurrent&&<div className="card" style={P}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-              <div><span style={{fontSize:14,fontWeight:700,color:T.text}}>Today's Budget</span><span style={{fontSize:13,color:T.sub,marginLeft:12}}>Limit {fmt(budget)} · Spent {fmt(todaySpend)} · Left {fmt(Math.max(0,budget-todaySpend))}</span></div>
-              <span style={{fontSize:22,fontWeight:900,color:bc}}>{bp}%</span>
-            </div>
-            <Bar val={todaySpend} max={budget} color={bc} h={7} T={T}/>
-          </div>}
-        </>);
-      })()}
+      {/* Single summary card for Expenses / Income page */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
+        <div className="card hov" style={{...P,background:accentBg,borderColor:accentBo}}>
+          <div style={SL}>{isExp?"Total Spent":"Total Received"}</div>
+          <div style={{fontSize:32,fontWeight:900,color:accentC,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(total)}</div>
+          <div style={{fontSize:12,color:T.sub,marginTop:8}}>{filtered.length} {isExp?"expense":"income"} entries · {MONTHS[selMonth].slice(0,3)}</div>
+        </div>
+        <div className="card hov" style={P}>
+          <div style={SL}>Largest Entry</div>
+          {filtered.length>0?(
+            <>
+              <div style={{fontSize:32,fontWeight:900,color:accentC,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(Math.max(...filtered.map(t=>t.amount)))}</div>
+              <div style={{fontSize:12,color:T.sub,marginTop:8}}>{filtered.sort((a,b)=>b.amount-a.amount)[0]?.category||""}</div>
+            </>
+          ):<div style={{fontSize:14,color:T.dim}}>—</div>}
+        </div>
+        <div className="card hov" style={P}>
+          <div style={SL}>Average Entry</div>
+          {filtered.length>0?(
+            <>
+              <div style={{fontSize:32,fontWeight:900,color:T.sub,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(total/filtered.length)}</div>
+              <div style={{fontSize:12,color:T.sub,marginTop:8}}>per transaction</div>
+            </>
+          ):<div style={{fontSize:14,color:T.dim}}>—</div>}
+        </div>
+      </div>
       {filtered.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div className="card" style={P}>
           <div style={SL}>📊 Monthly Insights</div>
