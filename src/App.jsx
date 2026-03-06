@@ -894,15 +894,83 @@ function ProfilePage({profile,setProfile,onLogout,onClear,T,customCats,setCustom
           <button onClick={addCat} disabled={!catInp.trim()||allCats.includes(catInp.trim())} style={{background:catInp.trim()&&!allCats.includes(catInp.trim())?T.gold:T.raised,border:"none",borderRadius:10,padding:"12px 22px",color:catInp.trim()&&!allCats.includes(catInp.trim())?"white":T.dim,fontWeight:700,fontFamily:"inherit",fontSize:14,whiteSpace:"nowrap",transition:"all .18s"}}>+ Add</button>
         </div>
       </div>
-      <div className="card" style={{...P,background:T.tealBg,borderColor:T.tealBord}}>
-        <div style={SL}>🏦 Bank Balance — Auto Tracked</div>
-        <div style={{fontSize:13.5,color:T.sub,lineHeight:1.7}}>Your bank balance is automatically calculated as <strong style={{color:T.teal}}>Total Income − Total Expenses</strong> across all time. Every time you log a payment or income, the balance updates instantly. No manual entry needed.</div>
+      <div className="card" style={P}>
+        {(()=>{
+          const[bInp,setBInp]=useState("");const[bSaved,setBSaved]=useState(false);
+          const saveBalance=()=>{const n=parseFloat(bInp.replace(/,/g,""));if(isNaN(n)||n<0)return;setBankBalance(n);setBSaved(true);setTimeout(()=>setBSaved(false),2500);};
+          return(<>
+            <div style={SL}>🏦 Update Starting Balance</div>
+            <div style={{fontSize:13,color:T.sub,marginBottom:16,lineHeight:1.7}}>Your current balance auto-adjusts with every transaction. If you need to correct the starting figure, enter it here.</div>
+            <div style={{display:"flex",gap:10}}>
+              <div style={{position:"relative",flex:1}}>
+                <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:T.sub,fontSize:16,fontWeight:700}}>₹</span>
+                <input type="text" inputMode="numeric" value={bInp} onChange={e=>setBInp(e.target.value.replace(/[^0-9.]/g,""))} placeholder="e.g. 25000" style={{...F,paddingLeft:34}}/>
+              </div>
+              <button onClick={saveBalance} disabled={!bInp.trim()} style={{background:bSaved?T.teal:bInp.trim()?T.terra:T.raised,border:"none",borderRadius:10,padding:"12px 22px",color:bInp.trim()?"white":T.dim,fontWeight:700,fontFamily:"inherit",fontSize:14,whiteSpace:"nowrap",minWidth:140,transition:"all .25s"}}>{bSaved?"Saved ✓":"Update Balance"}</button>
+            </div>
+          </>);
+        })()}
       </div>
       <div className="card" style={{...P,borderColor:T.redBord}}>
         <div style={{fontSize:11,fontWeight:600,color:T.red,letterSpacing:".07em",textTransform:"uppercase",marginBottom:14}}>Danger Zone</div>
         <div style={{display:"flex",gap:10}}>
           <button onClick={onLogout} style={{background:T.raised,border:`1px solid ${T.bord}`,borderRadius:9,padding:"9px 20px",color:T.sub,fontFamily:"inherit",fontWeight:500,fontSize:14}}>Sign Out</button>
           <button onClick={onClear} style={{background:T.redBg,border:`1px solid ${T.redBord}`,borderRadius:9,padding:"9px 20px",color:T.red,fontFamily:"inherit",fontWeight:600,fontSize:14}}>Delete All Transactions</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// BANK SETUP MODAL — shown once on first login
+function BankSetupModal({T,onSave}) {
+  const[val,setVal]=useState("");
+  const[saving,setSaving]=useState(false);
+  const num=parseFloat(val.replace(/,/g,""))||0;
+  const valid=val.trim()!==""&&num>=0;
+
+  const save=async()=>{
+    if(!valid)return;
+    setSaving(true);
+    await onSave(num);
+  };
+
+  return(
+    <div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,.75)",backdropFilter:"blur(8px)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}>
+      <div className="anim" style={{width:460,background:T.surf,border:`1px solid ${T.bord}`,borderRadius:24,padding:"48px 44px",boxShadow:T.shadowLg}}>
+        {/* Icon */}
+        <div style={{width:52,height:52,borderRadius:14,background:T.tealBg,border:`1px solid ${T.tealBord}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,marginBottom:24}}>🏦</div>
+        <div style={{fontSize:22,fontWeight:900,color:T.text,letterSpacing:"-0.04em",marginBottom:8}}>What's your current bank balance?</div>
+        <div style={{fontSize:14,color:T.sub,lineHeight:1.7,marginBottom:32}}>
+          Enter the amount in your bank account right now. Gullak will use this as your starting point and automatically track every change as you log transactions.
+        </div>
+        {/* Input */}
+        <div style={{position:"relative",marginBottom:10}}>
+          <span style={{position:"absolute",left:16,top:"50%",transform:"translateY(-50%)",fontSize:18,fontWeight:700,color:T.sub}}>₹</span>
+          <input
+            autoFocus
+            type="text"
+            inputMode="numeric"
+            value={val}
+            onChange={e=>setVal(e.target.value.replace(/[^0-9.]/g,""))}
+            onKeyDown={e=>e.key==="Enter"&&valid&&save()}
+            placeholder="e.g. 25000"
+            style={{width:"100%",background:T.raised,border:`2px solid ${valid?T.teal:T.bord}`,borderRadius:14,padding:"16px 16px 16px 40px",color:T.text,fontSize:20,fontWeight:700,fontFamily:"inherit",transition:"border-color .2s",outline:"none"}}
+          />
+        </div>
+        {val&&<div style={{fontSize:12,color:T.sub,marginBottom:28,paddingLeft:4}}>
+          Starting balance: <span style={{fontWeight:700,color:T.teal}}>{val?`₹${parseFloat(val.replace(/,/g,"")||0).toLocaleString("en-IN")}`:""}</span>
+        </div>}
+        {!val&&<div style={{height:28}}/>}
+        <button
+          onClick={save}
+          disabled={!valid||saving}
+          style={{width:"100%",background:valid?T.teal:T.raised,border:"none",borderRadius:12,padding:"15px",color:valid?"white":T.dim,fontWeight:700,fontSize:15,fontFamily:"inherit",transition:"all .22s",boxShadow:valid?`0 4px 20px ${T.teal}40`:"none",letterSpacing:".01em"}}
+        >
+          {saving?"Setting up…":"Set My Starting Balance"}
+        </button>
+        <div style={{marginTop:16,fontSize:12,color:T.dim,textAlign:"center",lineHeight:1.6}}>
+          You can update this anytime from Settings.<br/>All future transactions will adjust this automatically.
         </div>
       </div>
     </div>
@@ -916,6 +984,7 @@ export default function App() {
   const[txns,sTxns]=useState([]);const[loading,sLoad]=useState(true);const[dbErr,sDbErr]=useState("");
   const[budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
   const[bankBalance,setBankBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
+  const[bankSetupNeeded,setBankSetupNeeded]=useState(false); // true when bank_balance was null in DB
   const[profile,sProfRaw]=useState(()=>LS.get("gulak_profile",DEF_PROFILE));
   const[customCats,sCats]=useState(()=>LS.get("gulak_custom_cats",[]));
   const[editTarget,sET]=useState(null);const[toast,sToast]=useState(null);const[delId,sDel]=useState(null);const[alert,sAlert]=useState(null);
@@ -928,7 +997,7 @@ export default function App() {
   useEffect(()=>{
     Promise.all([sb.all(),sb.getSettings()]).then(([rows,settings])=>{
       sTxns(rows);
-      if(settings){sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});if(settings.budget)sBudget(Number(settings.budget));if(settings.bank_balance!=null){setBankBalanceRaw(Number(settings.bank_balance));LS.set("gulak_bank",Number(settings.bank_balance));}}
+      if(settings){sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});if(settings.budget)sBudget(Number(settings.budget));if(settings.bank_balance!=null){setBankBalanceRaw(Number(settings.bank_balance));LS.set("gulak_bank",Number(settings.bank_balance));}else{setBankSetupNeeded(true);}}else{setBankSetupNeeded(true);}
       didLoad.current=true;sLoad(false);
     }).catch(e=>{sDbErr(e.message);sLoad(false);});
   },[]);
@@ -938,6 +1007,7 @@ export default function App() {
   useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,bank_balance:bankBalance,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
 
   const setBankBalance=vOrFn=>{setBankBalanceRaw(prev=>{const n=typeof vOrFn==="function"?Math.max(0,vOrFn(prev)):Math.max(0,Number(vOrFn)||0);LS.set("gulak_bank",n);if(didLoad.current)sb.saveSettings({budget,bank_balance:n,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});return n;});};
+  const handleBankSetup=async(amount)=>{setBankBalance(amount);setBankSetupNeeded(false);};
   const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,bank_balance:bankBalance,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
   const handleAdd=async t=>{try{const s=await sb.insert(t);sTxns(p=>[s,...p]);
@@ -973,6 +1043,7 @@ export default function App() {
     <div style={{width:"100%",minHeight:"100vh",background:T.bg,color:T.text,fontFamily:"'Inter',system-ui,sans-serif",display:"flex",flexDirection:"column"}}>
       <G T={T}/>
       {!loggedIn&&<div style={{position:"fixed",inset:0,zIndex:100}}><Login onLogin={()=>sLI(true)} profile={profile} T={T}/></div>}
+      {loggedIn&&bankSetupNeeded&&<BankSetupModal T={T} onSave={handleBankSetup}/>}
       {alert&&<BudgetAlert {...alert} T={T}/>}
       {toast&&<div style={{position:"fixed",top:18,right:18,zIndex:200,background:T.surf,border:`1px solid ${toast.type==="err"?T.redBord:T.goldBord}`,borderRadius:11,padding:"12px 20px",color:toast.type==="err"?T.red:T.gold,fontSize:14,fontWeight:600,boxShadow:T.shadowLg,animation:"fadeIn .25s both"}}>{toast.msg}</div>}
       {delId!==null&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:150,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{background:T.surf,border:`1px solid ${T.bord}`,borderRadius:16,padding:28,width:320,textAlign:"center",boxShadow:T.shadowLg}}><div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:8}}>Delete transaction?</div><div style={{fontSize:14,color:T.sub,marginBottom:22}}>This cannot be undone.</div><div style={{display:"flex",gap:10}}><button onClick={()=>sDel(null)} style={{flex:1,background:T.raised,border:`1px solid ${T.bord}`,borderRadius:9,padding:"11px",color:T.sub,fontFamily:"inherit",fontSize:14}}>Cancel</button><button onClick={handleDelete} style={{flex:1,background:T.redBg,border:`1px solid ${T.redBord}`,borderRadius:9,padding:"11px",color:T.red,fontWeight:700,fontFamily:"inherit",fontSize:14}}>Delete</button></div></div></div>}
