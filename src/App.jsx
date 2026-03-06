@@ -323,53 +323,51 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
   const LBL={fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase"};
 
   // ── YESTERDAY NUDGE ─────────────────────────────────────────────────────────
-  // Calculate yesterday's key
   const yesterdayKey=useMemo(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);},[]);
   const yesterdaySpent=useMemo(()=>txns.filter(t=>t.type==="debit"&&t.date===yesterdayKey).reduce((s,t)=>s+t.amount,0),[txns,yesterdayKey]);
+  // yesterdaySaved = how much of the daily budget was NOT spent — can be negative if overspent
   const yesterdaySaved=budget>0?budget-yesterdaySpent:0;
-  // Show nudge only once per calendar day, only if budget is set and yesterday had activity or was a valid budget day
   const nudgeDismissKey="gulak_nudge_"+todayKey;
   const[nudgeDismissed,setNudgeDismissed]=useState(()=>LS.get(nudgeDismissKey,false));
   const showNudge=budget>0&&!nudgeDismissed&&isCurrent;
   const dismissNudge=()=>{LS.set(nudgeDismissKey,true);setNudgeDismissed(true);};
 
-  // Pick message based on yesterday's performance
   const nudge=useMemo(()=>{
     if(!budget||!isCurrent)return null;
     const pct2=Math.round(yesterdaySpent/budget*100);
-    const saved=fmt(Math.abs(yesterdaySaved));
-    const over=fmt(Math.abs(yesterdaySaved));
+    // Always use the correct saved/over amount from yesterday
+    const savedAmt=fmt(Math.abs(yesterdaySaved));
     if(yesterdaySpent===0) return {
-      emoji:"🌙", tone:"teal",
-      title:"Rest day yesterday",
-      msg:`You didn't spend anything yesterday. Your wallet thanks you. Every zero day adds up — keep it going!`,
+      emoji:"✨", tone:"teal",
+      title:"You had a free day yesterday!",
+      msg:"No spending logged — your Gullak didn't lose a single rupee. Hope you had a great day. Come back and keep tracking!",
     };
-    if(pct2<=50) return {
+    if(yesterdaySaved>0&&pct2<=50) return {
       emoji:"🎉", tone:"teal",
-      title:`You saved ${saved} yesterday!`,
-      msg:`Only ${pct2}% of your daily budget used. That's excellent discipline. Small wins like this are what build real wealth.`,
+      title:`Wonderful! You saved ${savedAmt} yesterday.`,
+      msg:"That's the kind of day that makes a real difference. Every rupee saved is a rupee working for you. Keep it up!",
     };
-    if(pct2<=80) return {
-      emoji:"✅", tone:"teal",
-      title:`Solid day yesterday`,
-      msg:`Spent ${pct2}% of your budget and saved ${saved}. You're in control — keep this rhythm going today.`,
+    if(yesterdaySaved>0&&pct2<=80) return {
+      emoji:"😊", tone:"teal",
+      title:`Good going! You saved ${savedAmt} yesterday.`,
+      msg:"Steady and controlled — that's the Gullak way. Small savings every day add up to something beautiful.",
     };
-    if(pct2<=100) return {
-      emoji:"⚠️", tone:"marigold",
-      title:`Close call yesterday`,
-      msg:`You used ${pct2}% of your daily budget — just ${saved} to spare. Today's a fresh start. Stay a little more mindful.`,
+    if(yesterdaySaved>0) return {
+      emoji:"👍", tone:"teal",
+      title:`You saved ${savedAmt} yesterday — nice!`,
+      msg:"Even saving a little is a win. You tracked your spending and stayed aware. That's what matters most.",
     };
+    // Overspent — always gentle, never punishing
     return {
-      emoji:"💸", tone:"terra",
-      title:`Over budget by ${over} yesterday`,
-      msg:`Yesterday was tough — ${pct2}% of budget used. It happens. What matters is today. You've got this.`,
+      emoji:"🌱", tone:"marigold",
+      title:"Yesterday was a bit heavy on spending.",
+      msg:"No worries at all — some days are like that. Today is a brand new day and your Gullak is ready for a fresh start. You've got this!",
     };
   },[budget,yesterdaySpent,yesterdaySaved,isCurrent]);
 
   const nudgePalette=nudge?{
     teal:{bg:T.tealBg,bord:T.tealBord,accent:T.teal},
     marigold:{bg:T.marigoldBg,bord:T.marigoldBord,accent:T.marigold},
-    terra:{bg:T.terraBg,bord:T.terraBord,accent:T.terra},
   }[nudge.tone]:null;
 
   return(
