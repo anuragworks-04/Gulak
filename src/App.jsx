@@ -93,14 +93,53 @@ function Bar({val,max,color,h=5,T}) {
   return <div style={{background:T.mode==="dark"?"rgba(255,255,255,.06)":"rgba(0,0,0,.07)",borderRadius:99,height:h,overflow:"hidden"}}><div style={{width:w+"%",height:"100%",background:color,borderRadius:99,transition:"width .7s cubic-bezier(.22,1,.36,1)"}}/></div>;
 }
 
-// ─── GULLAK LOGO MARK — clean rupee coin, fintech grade ─────────────────────
-function GullakIllustration({size=32,color="#E8693A"}) {
-  // A minimal rupee coin: outer ring + ₹ inside. Timeless, professional, Indian.
+// ─── GULLAK LOGO — mitti gullak with coin dropping in ────────────────────────
+function GullakIllustration({size=40}) {
   return(
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="16" cy="16" r="14" stroke={color} strokeWidth="1.8" fill="none"/>
-      <circle cx="16" cy="16" r="10" stroke={color} strokeWidth="0.7" fill="none" opacity="0.3"/>
-      <text x="16" y="21" textAnchor="middle" fontSize="13" fontWeight="700" fill={color} fontFamily="'Inter',system-ui,sans-serif">₹</text>
+    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="potBody" cx="38%" cy="30%" r="68%">
+          <stop offset="0%" stopColor="#F0935A"/>
+          <stop offset="55%" stopColor="#D4622A"/>
+          <stop offset="100%" stopColor="#A03A10"/>
+        </radialGradient>
+        <radialGradient id="potSheen" cx="28%" cy="22%" r="52%">
+          <stop offset="0%" stopColor="#FFBB88" stopOpacity="0.5"/>
+          <stop offset="100%" stopColor="#FFBB88" stopOpacity="0"/>
+        </radialGradient>
+        <radialGradient id="coinGrad" cx="35%" cy="28%" r="65%">
+          <stop offset="0%" stopColor="#FFE580"/>
+          <stop offset="100%" stopColor="#C8870A"/>
+        </radialGradient>
+        <filter id="gShadow">
+          <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#7A2A08" floodOpacity="0.3"/>
+        </filter>
+      </defs>
+      {/* Pot shadow on ground */}
+      <ellipse cx="40" cy="76" rx="20" ry="3.5" fill="#3A1A08" opacity="0.18"/>
+      {/* Main pot body — wide belly */}
+      <ellipse cx="40" cy="53" rx="27" ry="21" fill="url(#potBody)" filter="url(#gShadow)"/>
+      {/* Sheen highlight */}
+      <ellipse cx="40" cy="53" rx="27" ry="21" fill="url(#potSheen)"/>
+      {/* Neck */}
+      <path d="M30 42 Q30 33 40 33 Q50 33 50 42 L50 46 Q50 48 40 48 Q30 48 30 46 Z" fill="#C85820"/>
+      {/* Neck decorative ridge */}
+      <ellipse cx="40" cy="46" rx="10" ry="2.2" fill="#A03A10" opacity="0.5"/>
+      {/* Rim top */}
+      <ellipse cx="40" cy="34" rx="10.5" ry="3.2" fill="#B84E18"/>
+      <ellipse cx="40" cy="33.2" rx="9.8" ry="2.5" fill="#D46830"/>
+      {/* Coin slot — dark rectangle */}
+      <rect x="34.5" y="31.5" width="11" height="3.2" rx="1.6" fill="#4A1202"/>
+      {/* Coin — tilted, halfway inserted */}
+      <g transform="rotate(-10 40 23)">
+        <ellipse cx="40" cy="23" rx="7.8" ry="7.8" fill="url(#coinGrad)"/>
+        <ellipse cx="40" cy="23" rx="7.8" ry="7.8" stroke="#A86A08" strokeWidth="0.9" fill="none"/>
+        <ellipse cx="40" cy="23" rx="5.6" ry="5.6" stroke="#F0D060" strokeWidth="0.7" fill="none" opacity="0.55"/>
+        <text x="40" y="26.5" textAnchor="middle" fontSize="8" fontWeight="800" fill="#7A4A00" fontFamily="'Inter',system-ui,sans-serif" opacity="0.8">₹</text>
+      </g>
+      {/* Subtle clay cracks */}
+      <path d="M54 52 Q57 48 55 44" stroke="#8A3010" strokeWidth="1.1" strokeLinecap="round" opacity="0.3" fill="none"/>
+      <path d="M28 57 Q25 53 27 49" stroke="#8A3010" strokeWidth="0.9" strokeLinecap="round" opacity="0.22" fill="none"/>
     </svg>
   );
 }
@@ -116,7 +155,7 @@ function Login({onLogin,profile,T}) {
         {/* Gullak illustration + branding */}
         <div style={{textAlign:"center",marginBottom:40}}>
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
-            <GullakIllustration size={88} color={T.terra}/>
+            <GullakIllustration size={96}/>
           </div>
           <div style={{fontSize:32,fontWeight:900,color:T.terra,letterSpacing:"-0.05em",fontFamily:"'Inter',sans-serif"}}>Gullak</div>
           <div style={{fontSize:14,color:T.sub,marginTop:6,lineHeight:1.5}}>आपकी अपनी गुल्लक 🏺<br/><span style={{fontSize:12}}>Track every rupee, own your story</span></div>
@@ -152,9 +191,9 @@ function TopBar({tab,setTab,view,setView,profile,dark,toggleDark,budget,tSpend,T
     <div style={{position:"sticky",top:0,zIndex:60,width:"100%",background:T.nav,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`1px solid ${T.bord}`}}>
       <div style={{width:"100%",display:"flex",alignItems:"center",padding:"10px 28px",gap:14,minHeight:64}}>
         {/* Logo */}
-        <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0,marginRight:4}}>
-          <GullakIllustration size={32} color={T.terra}/>
-          <span style={{fontSize:18,fontWeight:900,color:T.terra,letterSpacing:"-0.04em"}}>Gullak</span>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginRight:6}}>
+          <GullakIllustration size={38}/>
+          <span style={{fontSize:17,fontWeight:800,color:T.text,letterSpacing:"-0.03em",fontFamily:"'Inter',sans-serif"}}>gullak</span>
         </div>
         {/* Dashboard — standalone button */}
         <button onClick={()=>setTab("overview")} style={{padding:"9px 20px",borderRadius:12,border:`1px solid ${tab==="overview"?T.marigold:T.bord}`,fontFamily:"inherit",fontSize:13.5,fontWeight:tab==="overview"?700:500,transition:"all .2s",background:tab==="overview"?T.marigold:T.raised,color:tab==="overview"?"white":T.sub,boxShadow:tab==="overview"?`0 2px 12px ${T.marigold}50`:"none",whiteSpace:"nowrap",flexShrink:0}}>
@@ -418,30 +457,17 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
           <div style={{fontSize:13,color:T.sub,marginTop:3}}>{filtered.length} {isExp?"expense":"income"} entries</div>
         </div>
       </div>
-      {/* Single summary card for Expenses / Income page */}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
-        <div className="card hov" style={{...P,background:accentBg,borderColor:accentBo}}>
-          <div style={SL}>{isExp?"Total Spent":"Total Received"}</div>
-          <div style={{fontSize:32,fontWeight:900,color:accentC,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(total)}</div>
-          <div style={{fontSize:12,color:T.sub,marginTop:8}}>{filtered.length} {isExp?"expense":"income"} entries · {MONTHS[selMonth].slice(0,3)}</div>
-        </div>
-        <div className="card hov" style={P}>
-          <div style={SL}>Largest Entry</div>
-          {filtered.length>0?(
-            <>
-              <div style={{fontSize:32,fontWeight:900,color:accentC,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(Math.max(...filtered.map(t=>t.amount)))}</div>
-              <div style={{fontSize:12,color:T.sub,marginTop:8}}>{filtered.sort((a,b)=>b.amount-a.amount)[0]?.category||""}</div>
-            </>
-          ):<div style={{fontSize:14,color:T.dim}}>—</div>}
-        </div>
-        <div className="card hov" style={P}>
-          <div style={SL}>Average Entry</div>
-          {filtered.length>0?(
-            <>
-              <div style={{fontSize:32,fontWeight:900,color:T.sub,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(total/filtered.length)}</div>
-              <div style={{fontSize:12,color:T.sub,marginTop:8}}>per transaction</div>
-            </>
-          ):<div style={{fontSize:14,color:T.dim}}>—</div>}
+      {/* Single clean summary stat */}
+      <div className="card" style={{...P,background:accentBg,borderColor:accentBo}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
+          <div>
+            <div style={SL}>{isExp?"Total Spent":"Total Received"} — {MONTHS[selMonth]} {selYear}</div>
+            <div style={{fontSize:40,fontWeight:900,color:accentC,letterSpacing:"-0.05em",lineHeight:1,marginTop:8}}>{fmt(total)}</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:13,color:T.sub,marginBottom:4}}>{filtered.length} {isExp?"expense":"income"} {filtered.length===1?"entry":"entries"}</div>
+            {filtered.length>0&&<div style={{fontSize:13,color:T.sub}}>Avg {fmt(total/filtered.length)} / entry</div>}
+          </div>
         </div>
       </div>
       {filtered.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
@@ -972,7 +998,9 @@ export default function App() {
   const[txns,sTxns]=useState([]);const[loading,sLoad]=useState(true);const[dbErr,sDbErr]=useState("");
   const[budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
   const[bankBalance,setBankBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
-  const[bankSetupNeeded,setBankSetupNeeded]=useState(false); // true when bank_balance was null in DB
+  // Modal shows only if gulak_bank_set has never been true in localStorage on this device
+  const[bankSetupNeeded,setBankSetupNeeded]=useState(false);
+  const bankEverSet=useRef(LS.get("gulak_bank_set",false));
   const[profile,sProfRaw]=useState(()=>LS.get("gulak_profile",DEF_PROFILE));
   const[customCats,sCats]=useState(()=>LS.get("gulak_custom_cats",[]));
   const[editTarget,sET]=useState(null);const[toast,sToast]=useState(null);const[delId,sDel]=useState(null);const[alert,sAlert]=useState(null);
@@ -985,7 +1013,18 @@ export default function App() {
   useEffect(()=>{
     Promise.all([sb.all(),sb.getSettings()]).then(([rows,settings])=>{
       sTxns(rows);
-      if(settings){sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});if(settings.budget)sBudget(Number(settings.budget));if(settings.bank_balance!=null){setBankBalanceRaw(Number(settings.bank_balance));LS.set("gulak_bank",Number(settings.bank_balance));}else{setBankSetupNeeded(true);}}else{setBankSetupNeeded(true);}
+      if(settings){
+        sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});
+        if(settings.budget)sBudget(Number(settings.budget));
+        if(settings.bank_balance!=null){
+          setBankBalanceRaw(Number(settings.bank_balance));
+          LS.set("gulak_bank",Number(settings.bank_balance));
+          LS.set("gulak_bank_set",true);
+          bankEverSet.current=true;
+        }
+      }
+      // Only show modal if balance was NEVER set on this device
+      if(!bankEverSet.current){setBankSetupNeeded(true);}
       didLoad.current=true;sLoad(false);
     }).catch(e=>{sDbErr(e.message);sLoad(false);});
   },[]);
@@ -995,7 +1034,7 @@ export default function App() {
   useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,bank_balance:bankBalance,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
 
   const setBankBalance=vOrFn=>{setBankBalanceRaw(prev=>{const n=typeof vOrFn==="function"?Math.max(0,vOrFn(prev)):Math.max(0,Number(vOrFn)||0);LS.set("gulak_bank",n);if(didLoad.current)sb.saveSettings({budget,bank_balance:n,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});return n;});};
-  const handleBankSetup=async(amount)=>{setBankBalance(amount);setBankSetupNeeded(false);};
+  const handleBankSetup=async(amount)=>{LS.set("gulak_bank_set",true);bankEverSet.current=true;setBankBalance(amount);setBankSetupNeeded(false);};
   const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,bank_balance:bankBalance,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
   const handleAdd=async t=>{try{const s=await sb.insert(t);sTxns(p=>[s,...p]);
