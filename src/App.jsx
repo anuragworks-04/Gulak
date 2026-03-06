@@ -63,7 +63,7 @@ const DARK = {
 
 function G({T}) {
   return <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400&family=Noto+Sans+Devanagari:wght@400;500;600;700;800;900&display=swap');
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     html,body,#root{width:100%;min-height:100vh;}
     body{font-family:'Inter',system-ui,sans-serif;background:${T.bg};color:${T.text};-webkit-font-smoothing:antialiased;}
@@ -93,53 +93,80 @@ function Bar({val,max,color,h=5,T}) {
   return <div style={{background:T.mode==="dark"?"rgba(255,255,255,.06)":"rgba(0,0,0,.07)",borderRadius:99,height:h,overflow:"hidden"}}><div style={{width:w+"%",height:"100%",background:color,borderRadius:99,transition:"width .7s cubic-bezier(.22,1,.36,1)"}}/></div>;
 }
 
-// ─── GULLAK LOGO — mitti gullak with coin dropping in ────────────────────────
+// ─── GULLAK LOGO — faithful mitti gullak illustration ────────────────────────
+// Reference: round terracotta pot, wide belly tapering up to narrow neck,
+// small knob lid, horizontal etched texture bands, coin slot, coin being inserted
 function GullakIllustration({size=40}) {
   return(
-    <svg width={size} height={size} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg width={size} height={size} viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <radialGradient id="potBody" cx="38%" cy="30%" r="68%">
-          <stop offset="0%" stopColor="#F0935A"/>
-          <stop offset="55%" stopColor="#D4622A"/>
-          <stop offset="100%" stopColor="#A03A10"/>
+        <radialGradient id="gl_body" cx="36%" cy="38%" r="65%">
+          <stop offset="0%" stopColor="#E8845A"/>
+          <stop offset="40%" stopColor="#C8552A"/>
+          <stop offset="100%" stopColor="#8A2E0A"/>
         </radialGradient>
-        <radialGradient id="potSheen" cx="28%" cy="22%" r="52%">
-          <stop offset="0%" stopColor="#FFBB88" stopOpacity="0.5"/>
-          <stop offset="100%" stopColor="#FFBB88" stopOpacity="0"/>
+        <radialGradient id="gl_neck" cx="40%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#D4663A"/>
+          <stop offset="100%" stopColor="#9A3818"/>
         </radialGradient>
-        <radialGradient id="coinGrad" cx="35%" cy="28%" r="65%">
-          <stop offset="0%" stopColor="#FFE580"/>
-          <stop offset="100%" stopColor="#C8870A"/>
+        <radialGradient id="gl_coin" cx="32%" cy="28%" r="68%">
+          <stop offset="0%" stopColor="#F5E070"/>
+          <stop offset="60%" stopColor="#D4A020"/>
+          <stop offset="100%" stopColor="#9A6808"/>
         </radialGradient>
-        <filter id="gShadow">
-          <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#7A2A08" floodOpacity="0.3"/>
+        <radialGradient id="gl_sheen" cx="28%" cy="25%" r="50%">
+          <stop offset="0%" stopColor="#FFCCA0" stopOpacity="0.4"/>
+          <stop offset="100%" stopColor="#FFCCA0" stopOpacity="0"/>
+        </radialGradient>
+        <filter id="gl_shadow" x="-15%" y="-10%" width="130%" height="130%">
+          <feDropShadow dx="1" dy="3" stdDeviation="3" floodColor="#5A1A00" floodOpacity="0.28"/>
         </filter>
       </defs>
-      {/* Pot shadow on ground */}
-      <ellipse cx="40" cy="76" rx="20" ry="3.5" fill="#3A1A08" opacity="0.18"/>
-      {/* Main pot body — wide belly */}
-      <ellipse cx="40" cy="53" rx="27" ry="21" fill="url(#potBody)" filter="url(#gShadow)"/>
-      {/* Sheen highlight */}
-      <ellipse cx="40" cy="53" rx="27" ry="21" fill="url(#potSheen)"/>
-      {/* Neck */}
-      <path d="M30 42 Q30 33 40 33 Q50 33 50 42 L50 46 Q50 48 40 48 Q30 48 30 46 Z" fill="#C85820"/>
-      {/* Neck decorative ridge */}
-      <ellipse cx="40" cy="46" rx="10" ry="2.2" fill="#A03A10" opacity="0.5"/>
-      {/* Rim top */}
-      <ellipse cx="40" cy="34" rx="10.5" ry="3.2" fill="#B84E18"/>
-      <ellipse cx="40" cy="33.2" rx="9.8" ry="2.5" fill="#D46830"/>
-      {/* Coin slot — dark rectangle */}
-      <rect x="34.5" y="31.5" width="11" height="3.2" rx="1.6" fill="#4A1202"/>
-      {/* Coin — tilted, halfway inserted */}
-      <g transform="rotate(-10 40 23)">
-        <ellipse cx="40" cy="23" rx="7.8" ry="7.8" fill="url(#coinGrad)"/>
-        <ellipse cx="40" cy="23" rx="7.8" ry="7.8" stroke="#A86A08" strokeWidth="0.9" fill="none"/>
-        <ellipse cx="40" cy="23" rx="5.6" ry="5.6" stroke="#F0D060" strokeWidth="0.7" fill="none" opacity="0.55"/>
-        <text x="40" y="26.5" textAnchor="middle" fontSize="8" fontWeight="800" fill="#7A4A00" fontFamily="'Inter',system-ui,sans-serif" opacity="0.8">₹</text>
+
+      {/* ── BODY — wide round belly, the heart of a gullak ── */}
+      <ellipse cx="50" cy="70" rx="36" ry="30" fill="url(#gl_body)" filter="url(#gl_shadow)"/>
+      <ellipse cx="50" cy="70" rx="36" ry="30" fill="url(#gl_sheen)"/>
+
+      {/* ── HORIZONTAL ETCHED TEXTURE BANDS — characteristic of terracotta gullaks ── */}
+      {[54, 60, 66, 72, 78, 84].map((cy,i)=>{
+        const rx=Math.sqrt(Math.max(0,36*36*(1-Math.pow((cy-70)/30,2))))*0.92;
+        return rx>4?<ellipse key={i} cx="50" cy={cy} rx={rx} ry="0.7" stroke="#7A2A08" strokeWidth="0.5" fill="none" opacity="0.35"/>:null;
+      })}
+      {/* A second denser set of bands in the lower belly */}
+      {[57,63,69,75,81].map((cy,i)=>{
+        const rx=Math.sqrt(Math.max(0,36*36*(1-Math.pow((cy-70)/30,2))))*0.88;
+        return rx>4?<ellipse key={'b'+i} cx="50" cy={cy} rx={rx} ry="0.5" stroke="#9A3818" strokeWidth="0.4" fill="none" opacity="0.2"/>:null;
+      })}
+
+      {/* ── NECK — narrows from belly up ── */}
+      <path d="M36 52 Q35 42 38 39 Q41 37 50 37 Q59 37 62 39 Q65 42 64 52 Q57 49 50 49 Q43 49 36 52Z" fill="url(#gl_neck)"/>
+      {/* Neck texture band */}
+      <ellipse cx="50" cy="50" rx="13" ry="1.8" stroke="#7A2A08" strokeWidth="0.6" fill="none" opacity="0.4"/>
+
+      {/* ── LID / KNOB TOP — small dome, like the reference ── */}
+      <ellipse cx="50" cy="38" rx="13" ry="4.5" fill="#B84820"/>
+      <ellipse cx="50" cy="36" rx="12" ry="3.5" fill="#CC5A28"/>
+      {/* Knob */}
+      <ellipse cx="50" cy="33.5" rx="5" ry="3" fill="#C05020"/>
+      <ellipse cx="50" cy="32.5" rx="4.5" ry="2.2" fill="#D46030"/>
+
+      {/* ── COIN SLOT — horizontal slit on the lid ── */}
+      <rect x="43" y="35" width="14" height="3" rx="1.5" fill="#3A0E00"/>
+
+      {/* ── COIN — round, tilted, being inserted (like the hand photo) ── */}
+      <g transform="rotate(-8 50 22)">
+        {/* Coin edge/depth */}
+        <ellipse cx="50" cy="23" rx="9" ry="9" fill="#B07A10"/>
+        {/* Coin face */}
+        <ellipse cx="50" cy="22" rx="9" ry="9" fill="url(#gl_coin)"/>
+        {/* Inner ring */}
+        <ellipse cx="50" cy="22" rx="6.8" ry="6.8" stroke="#C89020" strokeWidth="0.8" fill="none" opacity="0.6"/>
+        {/* ₹ on coin */}
+        <text x="50" y="25.5" textAnchor="middle" fontSize="9" fontWeight="800" fill="#6A4400" fontFamily="'Inter',system-ui,sans-serif" opacity="0.85">₹</text>
       </g>
-      {/* Subtle clay cracks */}
-      <path d="M54 52 Q57 48 55 44" stroke="#8A3010" strokeWidth="1.1" strokeLinecap="round" opacity="0.3" fill="none"/>
-      <path d="M28 57 Q25 53 27 49" stroke="#8A3010" strokeWidth="0.9" strokeLinecap="round" opacity="0.22" fill="none"/>
+
+      {/* ── GROUND SHADOW ── */}
+      <ellipse cx="50" cy="100" rx="26" ry="4" fill="#3A1000" opacity="0.15"/>
     </svg>
   );
 }
@@ -157,8 +184,8 @@ function Login({onLogin,profile,T}) {
           <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
             <GullakIllustration size={96}/>
           </div>
-          <div style={{fontSize:32,fontWeight:900,color:T.terra,letterSpacing:"-0.05em",fontFamily:"'Inter',sans-serif"}}>Gullak</div>
-          <div style={{fontSize:14,color:T.sub,marginTop:6,lineHeight:1.5}}>आपकी अपनी गुल्लक 🏺<br/><span style={{fontSize:12}}>Track every rupee, own your story</span></div>
+          <div style={{fontSize:34,fontWeight:900,color:T.terra,letterSpacing:"-0.02em",fontFamily:"'Noto Sans Devanagari','Inter',sans-serif",marginTop:4}}>गुल्लक</div>
+          <div style={{fontSize:12,color:T.sub,marginTop:10,lineHeight:1.7,fontFamily:"'Noto Sans Devanagari','Inter',sans-serif",letterSpacing:".01em",fontWeight:400}}>हर पैसे का हिसाब,<br/>आपकी अपनी गुल्लक में 🏺</div>
         </div>
         {err&&<div style={{background:T.terraBg,border:`1px solid ${T.terraBord}`,borderRadius:10,padding:"11px 15px",color:T.terra,fontSize:13,marginBottom:20,fontWeight:500}}>{err}</div>}
         <div style={{marginBottom:16}}>
@@ -190,10 +217,9 @@ function TopBar({tab,setTab,view,setView,profile,dark,toggleDark,budget,tSpend,T
   return(
     <div style={{position:"sticky",top:0,zIndex:60,width:"100%",background:T.nav,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`1px solid ${T.bord}`}}>
       <div style={{width:"100%",display:"flex",alignItems:"center",padding:"10px 28px",gap:14,minHeight:64}}>
-        {/* Logo */}
-        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,marginRight:6}}>
-          <GullakIllustration size={38}/>
-          <span style={{fontSize:17,fontWeight:800,color:T.text,letterSpacing:"-0.03em",fontFamily:"'Inter',sans-serif"}}>gullak</span>
+        {/* Logo — illustration only */}
+        <div style={{flexShrink:0,marginRight:6,display:"flex",alignItems:"center"}}>
+          <GullakIllustration size={42}/>
         </div>
         {/* Dashboard — standalone button */}
         <button onClick={()=>setTab("overview")} style={{padding:"9px 20px",borderRadius:12,border:`1px solid ${tab==="overview"?T.marigold:T.bord}`,fontFamily:"inherit",fontSize:13.5,fontWeight:tab==="overview"?700:500,transition:"all .2s",background:tab==="overview"?T.marigold:T.raised,color:tab==="overview"?"white":T.sub,boxShadow:tab==="overview"?`0 2px 12px ${T.marigold}50`:"none",whiteSpace:"nowrap",flexShrink:0}}>
