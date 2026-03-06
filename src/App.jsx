@@ -304,12 +304,14 @@ function TopBar({tab,setTab,profile,dark,toggleDark,budget,tSpend,bp,bc,T}){
             </div>
           )}
 
-          {/* Dark toggle */}
-          <button onClick={toggleDark} className="ghost-btn" style={{width:36,height:36,padding:0,display:"flex",alignItems:"center",justifyContent:"center",borderRadius:10}}>
+          {/* Dark toggle — clearly visible pill */}
+          <button onClick={toggleDark}
+            style={{display:"flex",alignItems:"center",gap:6,background:dark?T.raised:T.VBg,border:`1px solid ${dark?T.bord:T.VBord}`,borderRadius:99,padding:"5px 13px",cursor:"pointer",fontFamily:"'Outfit',sans-serif",transition:"all .2s"}}>
             {dark
-              ?<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.sub} strokeWidth="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-              :<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={T.sub} strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              ?<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.amber} strokeWidth="2.2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+              :<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={T.V} strokeWidth="2.2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
             }
+            <span style={{fontSize:11.5,fontWeight:700,color:dark?T.amber:T.V,letterSpacing:"0.02em"}}>{dark?"LIGHT":"DARK"}</span>
           </button>
 
           {/* Avatar */}
@@ -879,7 +881,7 @@ function BudgetModal({spent,budget,pending,onConfirm,onCancel,T}){
 // ─── NEW ENTRY ────────────────────────────────────────────────────────────────
 const emptyForm=()=>({date:today(),description:"",category:"Food & Dining",method:"UPI",type:"debit",amount:""});
 
-function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T}){
+function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T,customCats=[]}){
   const[form,sF]=useState(emptyForm());
   useEffect(()=>{sF(editTarget?{...editTarget,amount:String(editTarget.amount)}:emptyForm());},[editTarget]);
   const valid=form.description&&form.amount&&parseFloat(form.amount)>0&&form.date;
@@ -936,7 +938,7 @@ function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T}){
           </div>
           <div style={{marginBottom:16}}><label style={lbl}>Description</label><input value={form.description} onChange={e=>sF({...form,description:e.target.value})} placeholder="e.g. Zomato, Salary, Rent…" style={inp}/></div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:warn?16:24}}>
-            <div><label style={lbl}>Category</label><select value={form.category} onChange={e=>sF({...form,category:e.target.value})} style={{...inp,cursor:"pointer"}}>{CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+            <div><label style={lbl}>Category</label><select value={form.category} onChange={e=>sF({...form,category:e.target.value})} style={{...inp,cursor:"pointer"}}>{[...CATEGORIES,...customCats].map(c=><option key={c} value={c}>{c}</option>)}</select></div>
             <div><label style={lbl}>Payment Method</label><select value={form.method} onChange={e=>sF({...form,method:e.target.value})} style={{...inp,cursor:"pointer"}}>{METHODS.map(m=><option key={m} value={m}>{m}</option>)}</select></div>
           </div>
           {warn&&(
@@ -990,8 +992,52 @@ function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T}){
   );
 }
 
+// ─── CUSTOM CATEGORY MANAGER ─────────────────────────────────────────────────
+function CustomCatManager({customCats,setCustomCats,T}){
+  const[input,sI]=useState("");
+  const allCats=[...CATEGORIES,...customCats];
+  const add=()=>{
+    const v=input.trim();
+    if(!v||allCats.includes(v))return;
+    setCustomCats(p=>[...p,v]);
+    sI("");
+  };
+  const remove=cat=>setCustomCats(p=>p.filter(c=>c!==cat));
+  const inp={flex:1,background:T.raised,border:`1px solid ${T.bord}`,borderRadius:11,padding:"11px 14px",color:T.text,fontSize:14,outline:"none",fontFamily:"'Outfit',sans-serif",transition:"all .2s"};
+  return(
+    <div>
+      {/* Existing custom cats */}
+      {customCats.length>0&&(
+        <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}}>
+          {customCats.map(cat=>(
+            <div key={cat} style={{display:"flex",alignItems:"center",gap:6,background:T.VBg,border:`1px solid ${T.VBord}`,borderRadius:99,padding:"5px 12px"}}>
+              <span style={{fontSize:13,color:T.V,fontWeight:500}}>{cat}</span>
+              <button onClick={()=>remove(cat)} style={{background:"none",border:"none",cursor:"pointer",color:T.sub,fontSize:14,lineHeight:1,padding:0,display:"flex",alignItems:"center"}}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+      {customCats.length===0&&(
+        <div style={{fontSize:13,color:T.dim,marginBottom:14}}>No custom categories yet. Add one below.</div>
+      )}
+      {/* Add new */}
+      <div style={{display:"flex",gap:10}}>
+        <input value={input} onChange={e=>sI(e.target.value)} placeholder="e.g. Gym, Travel, Rent…"
+          style={inp} onKeyDown={e=>e.key==="Enter"&&add()}/>
+        <button onClick={add} disabled={!input.trim()||[...CATEGORIES,...customCats].includes(input.trim())}
+          style={{background:input.trim()?`linear-gradient(135deg,${T.VL},${T.VD})`:T.raised,border:"none",borderRadius:11,padding:"11px 22px",color:input.trim()?"white":T.dim,fontWeight:700,cursor:input.trim()?"pointer":"not-allowed",fontFamily:"'Outfit',sans-serif",fontSize:14,transition:"all .2s",whiteSpace:"nowrap"}}>
+          + Add
+        </button>
+      </div>
+      {[...CATEGORIES,...customCats].includes(input.trim())&&input.trim()&&(
+        <div style={{fontSize:12,color:T.orange,marginTop:7}}>That category already exists.</div>
+      )}
+    </div>
+  );
+}
+
 // ─── PROFILE ──────────────────────────────────────────────────────────────────
-function ProfilePage({profile,setProfile,onLogout,onClear,T}){
+function ProfilePage({profile,setProfile,onLogout,onClear,T,customCats=[],setCustomCats}){
   const[form,sF]=useState({username:profile.username,password:"",confirm:"",displayName:profile.displayName||""});
   const[saved,sS]=useState(false);const[err,sE]=useState("");
   const fileRef=useRef();
@@ -1049,6 +1095,12 @@ function ProfilePage({profile,setProfile,onLogout,onClear,T}){
         <button onClick={save} style={{background:`linear-gradient(135deg,${T.VL},${T.VD})`,border:"none",borderRadius:11,padding:"13px 30px",color:"white",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Outfit',sans-serif",boxShadow:`0 4px 16px ${T.V}40`}}>Save Changes</button>
       </div>
 
+      {/* Custom Categories */}
+      <div className="card">
+        <div style={{fontSize:12,fontWeight:600,color:T.sub,letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:18}}>Custom Expense Categories</div>
+        <CustomCatManager customCats={customCats} setCustomCats={setCustomCats} T={T}/>
+      </div>
+
       <div className="card" style={{borderColor:T.redBord}}>
         <div style={{fontSize:12,fontWeight:600,color:T.red,letterSpacing:"0.05em",textTransform:"uppercase",marginBottom:18}}>Danger Zone</div>
         <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
@@ -1071,6 +1123,7 @@ export default function App(){
   const[dbErr,sDbErr]=useState("");
   const[budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
   const[profile,sProfileRaw]=useState(()=>LS.get("gulak_profile",DEFAULT_PROFILE));
+  const[customCats,sCustomCats]=useState(()=>LS.get("gulak_custom_cats",[]));
   const[editTarget,sET]=useState(null);
   const[toast,sToast]=useState(null);
   const[delId,sDel]=useState(null);
@@ -1098,6 +1151,7 @@ export default function App(){
   },[]);
 
   useEffect(()=>{LS.set("gulak_dark",dark);},[dark]);
+  useEffect(()=>{LS.set("gulak_custom_cats",customCats);},[customCats]);
   useEffect(()=>{
     LS.set("gulak_budget",budget);
     if(!didLoad.current)return;
@@ -1172,13 +1226,13 @@ export default function App(){
       {loggedIn&&(
         <div style={{display:"flex",flexDirection:"column",minHeight:"100vh"}}>
           <TopBar tab={tab} setTab={t=>{sTab(t);if(t!=="entry")sET(null);}} profile={profile} dark={dark} toggleDark={()=>setDark(d=>!d)} budget={budget} tSpend={tSpend} bp={bp} bc={bc} T={T}/>
-          <div style={{flex:1,padding:"28px 28px",maxWidth:1380,width:"100%",margin:"0 auto",boxSizing:"border-box"}}>
+          <div style={{flex:1,padding:"28px 32px",width:"100%",boxSizing:"border-box"}}>
             {tab==="dashboard"    &&<Dashboard    txns={txns} budget={budget} name={dn} T={T} dark={dark}/>}
             {tab==="monthly"      &&<Monthly      txns={txns} budget={budget} T={T}/>}
             {tab==="budget"       &&<BudgetPage   txns={txns} budget={budget} setBudget={sBudget} T={T}/>}
             {tab==="transactions" &&<Transactions txns={txns} onEdit={handleEdit} onDelete={sDel} T={T}/>}
-            {tab==="entry"        &&<NewEntry     txns={txns} editTarget={editTarget} onAdd={handleAdd} onUpdate={handleUpdate} onCancel={()=>sET(null)} budget={budget} setAlert={sAlert} T={T}/>}
-            {tab==="profile"      &&<ProfilePage  profile={profile} setProfile={setProfile} onLogout={()=>sLI(false)} onClear={clearData} T={T}/>}
+            {tab==="entry"        &&<NewEntry     txns={txns} editTarget={editTarget} onAdd={handleAdd} onUpdate={handleUpdate} onCancel={()=>sET(null)} budget={budget} setAlert={sAlert} T={T} customCats={customCats}/>}
+            {tab==="profile"      &&<ProfilePage  profile={profile} setProfile={setProfile} onLogout={()=>sLI(false)} onClear={clearData} T={T} customCats={customCats} setCustomCats={sCustomCats}/>}
           </div>
         </div>
       )}
