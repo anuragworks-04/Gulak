@@ -261,7 +261,6 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
         const allCatsInData=["All",...Array.from(new Set(filtered.map(t=>t.category)))];
         const allMethodsInData=["All",...Array.from(new Set(filtered.map(t=>t.method)))];
         const displayTxns=filtered.filter(t=>(filterCat==="All"||t.category===filterCat)&&(filterMethod==="All"||t.method===filterMethod));
-        const selStyle=(active)=>({background:active?T.goldBg:T.raised,border:`1px solid ${active?T.gold:T.bord}`,borderRadius:99,padding:"6px 14px",color:active?T.gold:T.sub,fontFamily:"inherit",fontSize:12.5,fontWeight:active?700:500,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"});
         return(
           <div className="card" style={{overflow:"hidden"}}>
             <div style={{padding:"14px 20px",borderBottom:`1px solid ${T.bord}`}}>
@@ -269,22 +268,14 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
                 <span style={{...SL,marginBottom:0}}>{isExp?"Expense":"Income"} Transactions</span>
                 <span style={{fontSize:12,color:T.sub}}>{displayTxns.length} of {filtered.length}</span>
               </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                  <span style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:".06em",textTransform:"uppercase"}}>Category</span>
-                  {allCatsInData.map(c=>(
-                    <button key={c} onClick={()=>setFilterCat(c)} style={selStyle(filterCat===c)}>
-                      {c==="All"?"All":((CAT_ICON[c]||"📦")+" "+c)}
-                    </button>
-                  ))}
-                </div>
-                {filtered.length>0&&<div style={{width:"1px",background:T.bord,margin:"0 4px"}}/>}
-                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                  <span style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:".06em",textTransform:"uppercase"}}>Payment</span>
-                  {allMethodsInData.map(m=>(
-                    <button key={m} onClick={()=>setFilterMethod(m)} style={selStyle(filterMethod===m)}>{m}</button>
-                  ))}
-                </div>
+              <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                <select value={filterCat} onChange={e=>setFilterCat(e.target.value)} style={{background:T.raised,border:`1px solid ${filterCat!=="All"?T.gold:T.bord}`,borderRadius:10,padding:"7px 32px 7px 12px",color:filterCat!=="All"?T.gold:T.sub,fontFamily:"inherit",fontSize:13,fontWeight:filterCat!=="All"?700:500,cursor:"pointer",outline:"none",appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 10px center",transition:"all .15s"}}>
+                  {allCatsInData.map(c=><option key={c} value={c}>{c==="All"?"All Categories":((CAT_ICON[c]||"📦")+" "+c)}</option>)}
+                </select>
+                <select value={filterMethod} onChange={e=>setFilterMethod(e.target.value)} style={{background:T.raised,border:`1px solid ${filterMethod!=="All"?T.gold:T.bord}`,borderRadius:10,padding:"7px 32px 7px 12px",color:filterMethod!=="All"?T.gold:T.sub,fontFamily:"inherit",fontSize:13,fontWeight:filterMethod!=="All"?700:500,cursor:"pointer",outline:"none",appearance:"none",backgroundImage:`url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,backgroundRepeat:"no-repeat",backgroundPosition:"right 10px center",transition:"all .15s"}}>
+                  {allMethodsInData.map(m=><option key={m} value={m}>{m==="All"?"All Payments":m}</option>)}
+                </select>
+                {(filterCat!=="All"||filterMethod!=="All")&&<button onClick={()=>{setFilterCat("All");setFilterMethod("All");}} style={{background:"none",border:"none",color:T.sub,fontFamily:"inherit",fontSize:12,fontWeight:600,cursor:"pointer",padding:"4px 8px",borderRadius:6}}>✕ Clear</button>}
               </div>
             </div>
             {displayTxns.length===0?<div style={{padding:"48px 24px",textAlign:"center",color:T.dim,fontSize:14}}>No {isExp?"expenses":"income"} match the filters.</div>:(
