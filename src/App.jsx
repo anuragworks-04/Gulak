@@ -183,15 +183,17 @@ function TopBar({view,setView,setTab,profile,dark,toggleDark,budget,tSpend,T,onA
 }
 
 // DASHBOARD
-function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,selYear}) {
+function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,selYear,bankBalance}) {
   const isExp=view==="expense";
+  const nowM=new Date().getMonth();const nowY=new Date().getFullYear();
+  const isCurrent=selMonth===nowM&&selYear===nowY;
   const filtered=useMemo(()=>txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth&&(isExp?t.type==="debit":t.type==="credit");}),[txns,view,selMonth,selYear]);
   const opposite=useMemo(()=>txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth&&(isExp?t.type==="credit":t.type==="debit");}),[txns,view,selMonth,selYear]);
   const total=filtered.reduce((s,t)=>s+t.amount,0);
   const oTotal=opposite.reduce((s,t)=>s+t.amount,0);
   const net=isExp?oTotal-total:total-oTotal;
-  const tSpend=txns.filter(t=>t.type==="debit"&&t.date===today()).reduce((s,t)=>s+t.amount,0);
-  const bp=pct(tSpend,budget);const bc=bp>=100?T.red:bp>=80?"#f97316":T.green;
+  const todaySpend=isCurrent?txns.filter(t=>t.type==="debit"&&t.date===today()).reduce((s,t)=>s+t.amount,0):0;
+  const bp=isCurrent?pct(todaySpend,budget):0;const bc=bp>=100?T.red:bp>=80?"#f97316":T.green;
   const h=new Date().getHours();const greet=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
   const catMap=useMemo(()=>{const m={};filtered.forEach(t=>{m[t.category]=(m[t.category]||0)+t.amount;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);},[filtered]);
   const metMap=useMemo(()=>{const m={};filtered.forEach(t=>{m[t.method]=(m[t.method]||0)+t.amount;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);},[filtered]);
@@ -224,12 +226,33 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
           <div style={{fontSize:13,color:T.sub,marginTop:8}}>{net>=0?"surplus":"deficit"} this month</div>
         </div>
       </div>
-      {budget>0&&<div className="card" style={P}>
+      {bankBalance>0&&<div className="card hov" style={{...P,background:T.VBg,borderColor:T.VBord}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:600,color:T.V,letterSpacing:".07em",textTransform:"uppercase",marginBottom:8}}>🏦 Bank Balance</div>
+            <div style={{fontSize:32,fontWeight:900,color:T.V,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(bankBalance)}</div>
+            <div style={{fontSize:12,color:T.sub,marginTop:8}}>Auto-updated via UPI · Bank Transfer · Debit Card</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:11,color:T.sub,marginBottom:4}}>This month impact</div>
+            {(()=>{
+              const debitImpact=txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth&&t.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(t.method);}).reduce((s,t)=>s+t.amount,0);
+              const creditImpact=txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth&&t.type==="credit"&&["UPI","Bank Transfer"].includes(t.method);}).reduce((s,t)=>s+t.amount,0);
+              const net2=creditImpact-debitImpact;
+              return(<>
+                <div style={{fontSize:13,color:T.sub}}><span style={{color:T.green}}>+{fmt(creditImpact)}</span> in · <span style={{color:T.red}}>−{fmt(debitImpact)}</span> out</div>
+                <div style={{fontSize:14,fontWeight:800,color:net2>=0?T.green:T.red,marginTop:4}}>{net2>=0?"+":""}{fmt(net2)} net</div>
+              </>);
+            })()}
+          </div>
+        </div>
+      </div>}
+      {budget>0&&isCurrent&&<div className="card" style={P}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-          <div><span style={{fontSize:14,fontWeight:700,color:T.text}}>Daily Budget</span><span style={{fontSize:13,color:T.sub,marginLeft:12}}>Limit {fmt(budget)} · Spent {fmt(tSpend)} · Left {fmt(Math.max(0,budget-tSpend))}</span></div>
+          <div><span style={{fontSize:14,fontWeight:700,color:T.text}}>Daily Budget</span><span style={{fontSize:13,color:T.sub,marginLeft:12}}>Limit {fmt(budget)} · Spent {fmt(todaySpend)} · Left {fmt(Math.max(0,budget-todaySpend))}</span></div>
           <span style={{fontSize:22,fontWeight:900,color:bc}}>{bp}%</span>
         </div>
-        <Bar val={tSpend} max={budget} color={bc} h={7} T={T}/>
+        <Bar val={todaySpend} max={budget} color={bc} h={7} T={T}/>
       </div>}
       {filtered.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div className="card" style={P}>
@@ -597,9 +620,11 @@ function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T,cus
 }
 
 // PROFILE
-function ProfilePage({profile,setProfile,onLogout,onClear,T,customCats,setCustomCats}) {
+function ProfilePage({profile,setProfile,onLogout,onClear,T,customCats,setCustomCats,bankBalance,setBankBalance}) {
   const[form,sF]=useState({username:profile.username,password:"",confirm:"",displayName:profile.displayName||""});
   const[saved,sSaved]=useState(false);const[err,sE]=useState("");const[catInp,sCatInp]=useState("");
+  const[bankInp,setBankInp]=useState(String(bankBalance||""));const[bankSaved,setBankSaved]=useState(false);
+  const saveBank=()=>{const v=parseFloat(bankInp);if(!isNaN(v)&&v>=0){setBankBalance(v);setBankSaved(true);setTimeout(()=>setBankSaved(false),2000);}};
   const fileRef=useRef();const allCats=[...BASE_CATS,...customCats];
   const handlePhoto=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=ev=>setProfile(p=>({...p,photo:ev.target.result}));r.readAsDataURL(f);};
   const save=()=>{if(!form.username.trim()){sE("Username cannot be empty");return;}if(form.password&&form.password!==form.confirm){sE("Passwords don't match");return;}sE("");setProfile(p=>({...p,username:form.username.trim(),displayName:form.displayName.trim()||form.username.trim(),...(form.password?{password:form.password}:{})}));sF(f=>({...f,password:"",confirm:""}));sSaved(true);setTimeout(()=>sSaved(false),2500);};
@@ -647,6 +672,18 @@ function ProfilePage({profile,setProfile,onLogout,onClear,T,customCats,setCustom
           <button onClick={addCat} disabled={!catInp.trim()||allCats.includes(catInp.trim())} style={{background:catInp.trim()&&!allCats.includes(catInp.trim())?T.gold:T.raised,border:"none",borderRadius:10,padding:"12px 22px",color:catInp.trim()&&!allCats.includes(catInp.trim())?"white":T.dim,fontWeight:700,fontFamily:"inherit",fontSize:14,whiteSpace:"nowrap",transition:"all .18s"}}>+ Add</button>
         </div>
       </div>
+      <div className="card" style={P}>
+        <div style={SL}>🏦 Bank Balance</div>
+        <div style={{fontSize:13,color:T.sub,marginBottom:14,lineHeight:1.6}}>Set your current bank balance. It will automatically adjust when you add UPI / Bank Transfer / Debit Card expenses (deducted) or UPI / Bank Transfer income (added).</div>
+        <div style={{display:"flex",gap:10}}>
+          <div style={{position:"relative",flex:1}}>
+            <span style={{position:"absolute",left:14,top:"50%",transform:"translateY(-50%)",color:T.sub,fontSize:15,fontWeight:700}}>₹</span>
+            <input type="text" inputMode="numeric" value={bankInp} onChange={e=>setBankInp(e.target.value.replace(/[^0-9.]/g,""))} placeholder="e.g. 25000" style={{...F,paddingLeft:32}}/>
+          </div>
+          <button onClick={saveBank} style={{background:bankSaved?T.green:T.V,border:"none",borderRadius:10,padding:"12px 22px",color:"white",fontWeight:700,fontFamily:"inherit",fontSize:14,whiteSpace:"nowrap",minWidth:130,transition:"all .3s"}}>{bankSaved?"Saved ✓":"Set Balance"}</button>
+        </div>
+        {bankBalance>0&&<div style={{marginTop:12,fontSize:13,color:T.sub}}>Current: <span style={{fontWeight:700,color:T.V}}>{fmt(bankBalance)}</span></div>}
+      </div>
       <div className="card" style={{...P,borderColor:T.redBord}}>
         <div style={{fontSize:11,fontWeight:600,color:T.red,letterSpacing:".07em",textTransform:"uppercase",marginBottom:14}}>Danger Zone</div>
         <div style={{display:"flex",gap:10}}>
@@ -664,6 +701,8 @@ export default function App() {
   const[loggedIn,sLI]=useState(false);const[tab,sTab]=useState("dashboard");const[view,sView]=useState("expense");
   const[txns,sTxns]=useState([]);const[loading,sLoad]=useState(true);const[dbErr,sDbErr]=useState("");
   const[budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
+  const[bankBalance,setBankBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
+  const[bankBalance,setBankBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
   const[profile,sProfRaw]=useState(()=>LS.get("gulak_profile",DEF_PROFILE));
   const[customCats,sCats]=useState(()=>LS.get("gulak_custom_cats",[]));
   const[editTarget,sET]=useState(null);const[toast,sToast]=useState(null);const[delId,sDel]=useState(null);const[alert,sAlert]=useState(null);
@@ -676,21 +715,40 @@ export default function App() {
   useEffect(()=>{
     Promise.all([sb.all(),sb.getSettings()]).then(([rows,settings])=>{
       sTxns(rows);
-      if(settings){sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});if(settings.budget)sBudget(Number(settings.budget));}
+      if(settings){sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});if(settings.budget)sBudget(Number(settings.budget));if(settings.bank_balance!=null){setBankBalanceRaw(Number(settings.bank_balance));LS.set("gulak_bank",Number(settings.bank_balance));}}
       didLoad.current=true;sLoad(false);
     }).catch(e=>{sDbErr(e.message);sLoad(false);});
   },[]);
 
   useEffect(()=>{LS.set("gulak_dark",dark);},[dark]);
   useEffect(()=>{LS.set("gulak_custom_cats",customCats);},[customCats]);
-  useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
+  useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,bank_balance:bankBalance,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
 
-  const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
+  const setBankBalance=vOrFn=>{setBankBalanceRaw(prev=>{const n=typeof vOrFn==="function"?Math.max(0,vOrFn(prev)):Math.max(0,Number(vOrFn)||0);LS.set("gulak_bank",n);if(didLoad.current)sb.saveSettings({budget,bank_balance:n,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});return n;});};
+  const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,bank_balance:bankBalance,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
-  const handleAdd=async t=>{try{const s=await sb.insert(t);sTxns(p=>[s,...p]);toast2("Saved ✓");}catch{toast2("Save failed","err");}};
-  const handleUpdate=async t=>{try{await sb.update(t);sTxns(p=>p.map(x=>x.id===t.id?t:x));sET(null);sTab("dashboard");toast2("Updated ✓");}catch{toast2("Failed","err");}};
+  const handleAdd=async t=>{try{const s=await sb.insert(t);sTxns(p=>[s,...p]);
+    if(t.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(t.method))setBankBalance(b=>b-t.amount);
+    if(t.type==="credit"&&["UPI","Bank Transfer"].includes(t.method))setBankBalance(b=>b+t.amount);
+    toast2("Saved ✓");}catch{toast2("Save failed","err");}};
+  const handleUpdate=async t=>{try{
+    const old2=txns.find(x=>x.id===t.id);
+    if(old2){
+      if(old2.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(old2.method))setBankBalance(b=>b+old2.amount);
+      if(old2.type==="credit"&&["UPI","Bank Transfer"].includes(old2.method))setBankBalance(b=>b-old2.amount);
+    }
+    await sb.update(t);sTxns(p=>p.map(x=>x.id===t.id?t:x));
+    if(t.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(t.method))setBankBalance(b=>b-t.amount);
+    if(t.type==="credit"&&["UPI","Bank Transfer"].includes(t.method))setBankBalance(b=>b+t.amount);
+    sET(null);sTab("dashboard");toast2("Updated ✓");}catch{toast2("Failed","err");}};
   const handleEdit=t=>{sET(t);sTab("entry");};
-  const handleDelete=async()=>{try{await sb.remove(delId);sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");}catch{toast2("Failed","err");}};
+  const handleDelete=async()=>{try{
+    const t=txns.find(x=>x.id===delId);
+    if(t){
+      if(t.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(t.method))setBankBalance(b=>b+t.amount);
+      if(t.type==="credit"&&["UPI","Bank Transfer"].includes(t.method))setBankBalance(b=>b-t.amount);
+    }
+    await sb.remove(delId);sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");}catch{toast2("Failed","err");}};
   const clearData=async()=>{if(!window.confirm("Delete ALL transactions?"))return;try{await sb.clearAll();sTxns([]);toast2("Cleared","err");}catch{toast2("Failed","err");}};
   const tSpend=txns.filter(t=>t.type==="debit"&&t.date===today()).reduce((s,t)=>s+t.amount,0);
   const dn=profile.displayName||profile.username;
@@ -708,11 +766,11 @@ export default function App() {
       {loggedIn&&<>
         <TopBar view={view} setView={sView} setTab={t=>{sTab(t);if(t!=="entry")sET(null);}} profile={profile} dark={dark} toggleDark={()=>setDark(d=>!d)} budget={budget} tSpend={tSpend} T={T} onAdd={()=>{sET(null);sTab("entry");}} selMonth={selMonth} setSelMonth={setSelMonth} selYear={selYear} setSelYear={setSelYear}/>
         <div style={{flex:1,width:"100%",padding:"28px 32px",boxSizing:"border-box"}}>
-          {tab==="dashboard"&&<Dashboard txns={txns} budget={budget} name={dn} T={T} view={view} onEdit={handleEdit} onDelete={sDel} customCats={customCats} selMonth={selMonth} selYear={selYear}/>}
+          {tab==="dashboard"&&<Dashboard txns={txns} budget={budget} name={dn} T={T} view={view} onEdit={handleEdit} onDelete={sDel} customCats={customCats} selMonth={selMonth} selYear={selYear} bankBalance={bankBalance}/>}
           {tab==="monthly"&&<Monthly txns={txns} budget={budget} T={T} view={view} selMonth={selMonth} setSelMonth={setSelMonth} selYear={selYear} setSelYear={setSelYear}/>}
           {tab==="budget"&&<Budget txns={txns} budget={budget} setBudget={sBudget} T={T} selMonth={selMonth} selYear={selYear}/>}
           {tab==="entry"&&<NewEntry txns={txns} editTarget={editTarget} onAdd={handleAdd} onUpdate={handleUpdate} onCancel={()=>{sET(null);sTab("dashboard");}} budget={budget} setAlert={sAlert} T={T} customCats={customCats} view={view}/>}
-          {(tab==="profile"||tab==="settings")&&<ProfilePage profile={profile} setProfile={setProfile} onLogout={()=>sLI(false)} onClear={clearData} T={T} customCats={customCats} setCustomCats={sCats}/>}
+          {(tab==="profile"||tab==="settings")&&<ProfilePage profile={profile} setProfile={setProfile} onLogout={()=>sLI(false)} onClear={clearData} T={T} customCats={customCats} setCustomCats={sCats} bankBalance={bankBalance} setBankBalance={setBankBalance}/>}
         </div>
       </>}
     </div>
