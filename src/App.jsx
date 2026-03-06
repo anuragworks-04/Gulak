@@ -209,30 +209,76 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
         </div>
       </div>
       {/* 3 stat cards */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
-        <div className="card hov" style={{...P,background:accentBg,borderColor:accentBo}}>
-          <div style={SL}>{isExp?"Spent":"Received"}</div>
-          <div style={{fontSize:32,fontWeight:900,color:accentC,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(total)}</div>
-          <div style={{fontSize:13,color:T.sub,marginTop:8}}>{filtered.length} {isExp?"expenses":"entries"}</div>
-        </div>
-        <div className="card hov" style={P}>
-          <div style={SL}>{isExp?"Received":"Spent"}</div>
-          <div style={{fontSize:32,fontWeight:900,color:T.sub,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(oTotal)}</div>
-          <div style={{fontSize:13,color:T.sub,marginTop:8}}>{opposite.length} entries</div>
-        </div>
-        <div className="card hov" style={{...P,background:net>=0?T.greenBg:T.redBg,borderColor:net>=0?T.greenBord:T.redBord}}>
-          <div style={SL}>Bank Balance</div>
-          <div style={{fontSize:32,fontWeight:900,color:net>=0?T.green:T.red,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(net)}</div>
-          <div style={{fontSize:13,color:T.sub,marginTop:8}}>{net>=0?"surplus":"deficit"} this month</div>
-        </div>
-      </div>
-      {budget>0&&isCurrent&&<div className="card" style={P}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-          <div><span style={{fontSize:14,fontWeight:700,color:T.text}}>Daily Budget</span><span style={{fontSize:13,color:T.sub,marginLeft:12}}>Limit {fmt(budget)} · Spent {fmt(todaySpend)} · Left {fmt(Math.max(0,budget-todaySpend))}</span></div>
-          <span style={{fontSize:22,fontWeight:900,color:bc}}>{bp}%</span>
-        </div>
-        <Bar val={todaySpend} max={budget} color={bc} h={7} T={T}/>
-      </div>}
+      {(()=>{
+        const dim=new Date(selYear,selMonth+1,0).getDate();
+        const monthlyBudget=budget>0?budget*dim:0;
+        // total debits for selected month (all methods) = what's spent from monthly budget
+        const monthSpent=txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth&&t.type==="debit";}).reduce((s,t)=>s+t.amount,0);
+        const monthLeft=Math.max(0,monthlyBudget-monthSpent);
+        const monthPct=monthlyBudget>0?Math.min(100,Math.round(monthSpent/monthlyBudget*100)):0;
+        const mbc=monthPct>=100?T.red:monthPct>=80?"#f97316":T.green;
+        // Lifetime savings: sum of (budget_pool - spent) across all months, can go negative
+        const lifetimeSavings=(()=>{
+          if(!budget)return 0;
+          const monthSet=new Set(txns.map(t=>t.date.slice(0,7)));
+          let total2=0;
+          monthSet.forEach(ym=>{
+            const[y,m]=ym.split("-").map(Number);
+            const days=new Date(y,m,0).getDate();
+            const pool=budget*days;
+            const spent2=txns.filter(t=>t.date.startsWith(ym)&&t.type==="debit").reduce((s,t)=>s+t.amount,0);
+            total2+=(pool-spent2);
+          });
+          return total2;
+        })();
+        return(<>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:14}}>
+            {/* Card 1: Spent this month */}
+            <div className="card hov" style={{...P,background:accentBg,borderColor:accentBo}}>
+              <div style={SL}>{isExp?"Spent":"Received"}</div>
+              <div style={{fontSize:28,fontWeight:900,color:accentC,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(total)}</div>
+              <div style={{fontSize:12,color:T.sub,marginTop:8}}>{filtered.length} {isExp?"expenses":"entries"} · {MONTHS[selMonth].slice(0,3)}</div>
+            </div>
+            {/* Card 2: Bank Balance */}
+            <div className="card hov" style={{...P,background:T.VBg,borderColor:T.VBord}}>
+              <div style={SL}>🏦 Bank Balance</div>
+              <div style={{fontSize:28,fontWeight:900,color:T.V,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(bankBalance)}</div>
+              <div style={{fontSize:12,color:T.sub,marginTop:8}}>UPI · Bank Transfer · Debit</div>
+            </div>
+            {/* Card 3: Monthly Budget Left */}
+            {budget>0?(
+              <div className="card hov" style={{...P,background:monthLeft===0?T.redBg:monthPct>=80?T.raised:T.greenBg,borderColor:monthLeft===0?T.redBord:monthPct>=80?T.bord:T.greenBord}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={SL}>Budget Left</div>
+                  <span style={{fontSize:11,fontWeight:700,color:mbc,background:T.raised,borderRadius:99,padding:"2px 9px",marginTop:-2}}>{monthPct}%</span>
+                </div>
+                <div style={{fontSize:28,fontWeight:900,color:mbc,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthLeft)}</div>
+                <div style={{marginTop:8}}><Bar val={monthSpent} max={monthlyBudget} color={mbc} h={4} T={T}/></div>
+                <div style={{fontSize:12,color:T.sub,marginTop:6}}>{fmt(monthlyBudget)} pool · {dim}d × {fmt(budget)}</div>
+              </div>
+            ):(
+              <div className="card hov" style={{...P,background:net>=0?T.greenBg:T.redBg,borderColor:net>=0?T.greenBord:T.redBord}}>
+                <div style={SL}>Net Balance</div>
+                <div style={{fontSize:28,fontWeight:900,color:net>=0?T.green:T.red,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(net)}</div>
+                <div style={{fontSize:12,color:T.sub,marginTop:8}}>{net>=0?"surplus":"deficit"} this month</div>
+              </div>
+            )}
+            {/* Card 4: Lifetime Savings */}
+            <div className="card hov" style={{...P,background:lifetimeSavings>=0?T.greenBg:T.redBg,borderColor:lifetimeSavings>=0?T.greenBord:T.redBord}}>
+              <div style={SL}>💰 Lifetime Savings</div>
+              <div style={{fontSize:28,fontWeight:900,color:lifetimeSavings>=0?T.green:T.red,letterSpacing:"-0.05em",lineHeight:1}}>{lifetimeSavings>=0?"+":""}{fmt(lifetimeSavings)}</div>
+              <div style={{fontSize:12,color:T.sub,marginTop:8}}>budget pool − actual spend</div>
+            </div>
+          </div>
+          {budget>0&&isCurrent&&<div className="card" style={P}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
+              <div><span style={{fontSize:14,fontWeight:700,color:T.text}}>Today's Budget</span><span style={{fontSize:13,color:T.sub,marginLeft:12}}>Limit {fmt(budget)} · Spent {fmt(todaySpend)} · Left {fmt(Math.max(0,budget-todaySpend))}</span></div>
+              <span style={{fontSize:22,fontWeight:900,color:bc}}>{bp}%</span>
+            </div>
+            <Bar val={todaySpend} max={budget} color={bc} h={7} T={T}/>
+          </div>}
+        </>);
+      })()}
       {filtered.length>0&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
         <div className="card" style={P}>
           <div style={SL}>📊 Monthly Insights</div>
