@@ -221,32 +221,11 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
           <div style={{fontSize:13,color:T.sub,marginTop:8}}>{opposite.length} entries</div>
         </div>
         <div className="card hov" style={{...P,background:net>=0?T.greenBg:T.redBg,borderColor:net>=0?T.greenBord:T.redBord}}>
-          <div style={SL}>Net Balance</div>
+          <div style={SL}>Bank Balance</div>
           <div style={{fontSize:32,fontWeight:900,color:net>=0?T.green:T.red,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(net)}</div>
           <div style={{fontSize:13,color:T.sub,marginTop:8}}>{net>=0?"surplus":"deficit"} this month</div>
         </div>
       </div>
-      {bankBalance>0&&<div className="card hov" style={{...P,background:T.VBg,borderColor:T.VBord}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div>
-            <div style={{fontSize:11,fontWeight:600,color:T.V,letterSpacing:".07em",textTransform:"uppercase",marginBottom:8}}>🏦 Bank Balance</div>
-            <div style={{fontSize:32,fontWeight:900,color:T.V,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(bankBalance)}</div>
-            <div style={{fontSize:12,color:T.sub,marginTop:8}}>Auto-updated via UPI · Bank Transfer · Debit Card</div>
-          </div>
-          <div style={{textAlign:"right"}}>
-            <div style={{fontSize:11,color:T.sub,marginBottom:4}}>This month impact</div>
-            {(()=>{
-              const debitImpact=txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth&&t.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(t.method);}).reduce((s,t)=>s+t.amount,0);
-              const creditImpact=txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth&&t.type==="credit"&&["UPI","Bank Transfer"].includes(t.method);}).reduce((s,t)=>s+t.amount,0);
-              const net2=creditImpact-debitImpact;
-              return(<>
-                <div style={{fontSize:13,color:T.sub}}><span style={{color:T.green}}>+{fmt(creditImpact)}</span> in · <span style={{color:T.red}}>−{fmt(debitImpact)}</span> out</div>
-                <div style={{fontSize:14,fontWeight:800,color:net2>=0?T.green:T.red,marginTop:4}}>{net2>=0?"+":""}{fmt(net2)} net</div>
-              </>);
-            })()}
-          </div>
-        </div>
-      </div>}
       {budget>0&&isCurrent&&<div className="card" style={P}>
         <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
           <div><span style={{fontSize:14,fontWeight:700,color:T.text}}>Daily Budget</span><span style={{fontSize:13,color:T.sub,marginLeft:12}}>Limit {fmt(budget)} · Spent {fmt(todaySpend)} · Left {fmt(Math.max(0,budget-todaySpend))}</span></div>
@@ -276,34 +255,63 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
           ))}
         </div>
       </div>}
-      <div className="card" style={{overflow:"hidden"}}>
-        <div style={{padding:"16px 24px",borderBottom:`1px solid ${T.bord}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span style={{...SL,marginBottom:0}}>{isExp?"Expense":"Income"} Transactions</span>
-          <span style={{fontSize:12.5,color:T.sub}}>{filtered.length} total</span>
-        </div>
-        {filtered.length===0?<div style={{padding:"56px 24px",textAlign:"center",color:T.dim,fontSize:14}}>No {isExp?"expenses":"income"} yet.</div>:(
-          <div style={{overflowX:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:13.5}}>
-              <thead><tr style={{background:T.raised}}>{["Description","Category","Method","Date","Amount",""].map((h,i)=><th key={i} style={{padding:"11px 20px",textAlign:"left",color:T.sub,fontWeight:600,fontSize:10.5,letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
-              <tbody>
-                {filtered.slice(0,20).map(t=>(
-                  <tr key={t.id} className="rowh" style={{borderTop:`1px solid ${T.bord}`}}>
-                    <td style={{padding:"13px 20px",color:T.text,fontWeight:500}}>{t.description}</td>
-                    <td style={{padding:"13px 20px"}}><span style={{fontSize:13,background:T.goldBg,color:T.gold,borderRadius:99,padding:"3px 12px",fontWeight:600}}>{CAT_ICON[t.category]||"📦"} {t.category}</span></td>
-                    <td style={{padding:"13px 20px",color:T.sub,fontSize:13}}>{t.method}</td>
-                    <td style={{padding:"13px 20px",color:T.sub,fontSize:13,whiteSpace:"nowrap"}}>{t.date}</td>
-                    <td style={{padding:"13px 20px",fontWeight:900,fontSize:16,letterSpacing:"-0.03em",color:isExp?T.red:T.green,whiteSpace:"nowrap"}}>{isExp?"−":"+"}{fmt(t.amount)}</td>
-                    <td style={{padding:"13px 20px"}}><div style={{display:"flex",gap:6}}>
-                      <button onClick={()=>onEdit(t)} style={{background:T.VBg,border:`1px solid ${T.VBord}`,borderRadius:7,padding:"5px 13px",color:T.V,fontSize:12.5,fontFamily:"inherit",fontWeight:600}}>Edit</button>
-                      <button onClick={()=>onDelete(t.id)} style={{background:T.redBg,border:`1px solid ${T.redBord}`,borderRadius:7,padding:"5px 11px",color:T.red,fontSize:12.5,fontFamily:"inherit"}}>Del</button>
-                    </div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {(()=>{
+        const[filterCat,setFilterCat]=useState("All");
+        const[filterMethod,setFilterMethod]=useState("All");
+        const allCatsInData=["All",...Array.from(new Set(filtered.map(t=>t.category)))];
+        const allMethodsInData=["All",...Array.from(new Set(filtered.map(t=>t.method)))];
+        const displayTxns=filtered.filter(t=>(filterCat==="All"||t.category===filterCat)&&(filterMethod==="All"||t.method===filterMethod));
+        const selStyle=(active)=>({background:active?T.goldBg:T.raised,border:`1px solid ${active?T.gold:T.bord}`,borderRadius:99,padding:"6px 14px",color:active?T.gold:T.sub,fontFamily:"inherit",fontSize:12.5,fontWeight:active?700:500,cursor:"pointer",transition:"all .15s",whiteSpace:"nowrap"});
+        return(
+          <div className="card" style={{overflow:"hidden"}}>
+            <div style={{padding:"14px 20px",borderBottom:`1px solid ${T.bord}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <span style={{...SL,marginBottom:0}}>{isExp?"Expense":"Income"} Transactions</span>
+                <span style={{fontSize:12,color:T.sub}}>{displayTxns.length} of {filtered.length}</span>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  <span style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:".06em",textTransform:"uppercase"}}>Category</span>
+                  {allCatsInData.map(c=>(
+                    <button key={c} onClick={()=>setFilterCat(c)} style={selStyle(filterCat===c)}>
+                      {c==="All"?"All":((CAT_ICON[c]||"📦")+" "+c)}
+                    </button>
+                  ))}
+                </div>
+                {filtered.length>0&&<div style={{width:"1px",background:T.bord,margin:"0 4px"}}/>}
+                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                  <span style={{fontSize:11,fontWeight:600,color:T.dim,letterSpacing:".06em",textTransform:"uppercase"}}>Payment</span>
+                  {allMethodsInData.map(m=>(
+                    <button key={m} onClick={()=>setFilterMethod(m)} style={selStyle(filterMethod===m)}>{m}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {displayTxns.length===0?<div style={{padding:"48px 24px",textAlign:"center",color:T.dim,fontSize:14}}>No {isExp?"expenses":"income"} match the filters.</div>:(
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:13.5}}>
+                  <thead><tr style={{background:T.raised}}>{["Description","Category","Method","Date","Amount",""].map((h,i)=><th key={i} style={{padding:"11px 20px",textAlign:"left",color:T.sub,fontWeight:600,fontSize:10.5,letterSpacing:".06em",textTransform:"uppercase",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {displayTxns.slice(0,50).map(t=>(
+                      <tr key={t.id} className="rowh" style={{borderTop:`1px solid ${T.bord}`}}>
+                        <td style={{padding:"13px 20px",color:T.text,fontWeight:500}}>{t.description}</td>
+                        <td style={{padding:"13px 20px"}}><span style={{fontSize:13,background:T.goldBg,color:T.gold,borderRadius:99,padding:"3px 12px",fontWeight:600}}>{CAT_ICON[t.category]||"📦"} {t.category}</span></td>
+                        <td style={{padding:"13px 20px",color:T.sub,fontSize:13}}>{t.method}</td>
+                        <td style={{padding:"13px 20px",color:T.sub,fontSize:13,whiteSpace:"nowrap"}}>{t.date}</td>
+                        <td style={{padding:"13px 20px",fontWeight:900,fontSize:16,letterSpacing:"-0.03em",color:isExp?T.red:T.green,whiteSpace:"nowrap"}}>{isExp?"−":"+"}{fmt(t.amount)}</td>
+                        <td style={{padding:"13px 20px"}}><div style={{display:"flex",gap:6}}>
+                          <button onClick={()=>onEdit(t)} style={{background:T.VBg,border:`1px solid ${T.VBord}`,borderRadius:7,padding:"5px 13px",color:T.V,fontSize:12.5,fontFamily:"inherit",fontWeight:600}}>Edit</button>
+                          <button onClick={()=>onDelete(t.id)} style={{background:T.redBg,border:`1px solid ${T.redBord}`,borderRadius:7,padding:"5px 11px",color:T.red,fontSize:12.5,fontFamily:"inherit"}}>Del</button>
+                        </div></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+        );
+      })()}
     </div>
   );
 }
