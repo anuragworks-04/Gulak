@@ -325,9 +325,9 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
   // ── YESTERDAY NUDGE ─────────────────────────────────────────────────────────
   const yesterdayKey=useMemo(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);},[]);
   const yesterdaySpent=useMemo(()=>txns.filter(t=>t.type==="debit"&&t.date===yesterdayKey).reduce((s,t)=>s+t.amount,0),[txns,yesterdayKey]);
-  // yesterdaySaved = how much of the daily budget was NOT spent — can be negative if overspent
-  const yesterdaySaved=budget>0?budget-yesterdaySpent:0;
-  const nudgeDismissKey="gulak_nudge_"+todayKey;
+  // Strictly: yesterday's budget minus yesterday's actual spend — never touches today
+  const yesterdaySaved=budget-yesterdaySpent;
+  const nudgeDismissKey="gulak_nudge_v2_"+todayKey;
   const[nudgeDismissed,setNudgeDismissed]=useState(()=>LS.get(nudgeDismissKey,false));
   const showNudge=budget>0&&!nudgeDismissed&&isCurrent;
   const dismissNudge=()=>{LS.set(nudgeDismissKey,true);setNudgeDismissed(true);};
