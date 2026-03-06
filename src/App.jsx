@@ -322,8 +322,70 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
   const P={padding:"24px 28px"};
   const LBL={fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase"};
 
+  // ── YESTERDAY NUDGE ─────────────────────────────────────────────────────────
+  // Calculate yesterday's key
+  const yesterdayKey=useMemo(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);},[]);
+  const yesterdaySpent=useMemo(()=>txns.filter(t=>t.type==="debit"&&t.date===yesterdayKey).reduce((s,t)=>s+t.amount,0),[txns,yesterdayKey]);
+  const yesterdaySaved=budget>0?budget-yesterdaySpent:0;
+  // Show nudge only once per calendar day, only if budget is set and yesterday had activity or was a valid budget day
+  const nudgeDismissKey="gulak_nudge_"+todayKey;
+  const[nudgeDismissed,setNudgeDismissed]=useState(()=>LS.get(nudgeDismissKey,false));
+  const showNudge=budget>0&&!nudgeDismissed&&isCurrent;
+  const dismissNudge=()=>{LS.set(nudgeDismissKey,true);setNudgeDismissed(true);};
+
+  // Pick message based on yesterday's performance
+  const nudge=useMemo(()=>{
+    if(!budget||!isCurrent)return null;
+    const pct2=Math.round(yesterdaySpent/budget*100);
+    const saved=fmt(Math.abs(yesterdaySaved));
+    const over=fmt(Math.abs(yesterdaySaved));
+    if(yesterdaySpent===0) return {
+      emoji:"🌙", tone:"teal",
+      title:"Rest day yesterday",
+      msg:`You didn't spend anything yesterday. Your wallet thanks you. Every zero day adds up — keep it going!`,
+    };
+    if(pct2<=50) return {
+      emoji:"🎉", tone:"teal",
+      title:`You saved ${saved} yesterday!`,
+      msg:`Only ${pct2}% of your daily budget used. That's excellent discipline. Small wins like this are what build real wealth.`,
+    };
+    if(pct2<=80) return {
+      emoji:"✅", tone:"teal",
+      title:`Solid day yesterday`,
+      msg:`Spent ${pct2}% of your budget and saved ${saved}. You're in control — keep this rhythm going today.`,
+    };
+    if(pct2<=100) return {
+      emoji:"⚠️", tone:"marigold",
+      title:`Close call yesterday`,
+      msg:`You used ${pct2}% of your daily budget — just ${saved} to spare. Today's a fresh start. Stay a little more mindful.`,
+    };
+    return {
+      emoji:"💸", tone:"terra",
+      title:`Over budget by ${over} yesterday`,
+      msg:`Yesterday was tough — ${pct2}% of budget used. It happens. What matters is today. You've got this.`,
+    };
+  },[budget,yesterdaySpent,yesterdaySaved,isCurrent]);
+
+  const nudgePalette=nudge?{
+    teal:{bg:T.tealBg,bord:T.tealBord,accent:T.teal},
+    marigold:{bg:T.marigoldBg,bord:T.marigoldBord,accent:T.marigold},
+    terra:{bg:T.terraBg,bord:T.terraBord,accent:T.terra},
+  }[nudge.tone]:null;
+
   return(
     <div className="anim" style={{display:"flex",flexDirection:"column",gap:20,width:"100%",maxWidth:1100,margin:"0 auto"}}>
+
+      {/* ── YESTERDAY NUDGE BANNER ── */}
+      {showNudge&&nudge&&nudgePalette&&(
+        <div style={{background:nudgePalette.bg,border:`1px solid ${nudgePalette.bord}`,borderRadius:18,padding:"20px 24px",display:"flex",alignItems:"flex-start",gap:16,animation:"fadeUp .4s cubic-bezier(.22,1,.36,1) both"}}>
+          <div style={{fontSize:32,lineHeight:1,flexShrink:0,marginTop:2}}>{nudge.emoji}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:16,fontWeight:800,color:nudgePalette.accent,letterSpacing:"-0.02em",marginBottom:5}}>{nudge.title}</div>
+            <div style={{fontSize:13.5,color:T.sub,lineHeight:1.65}}>{nudge.msg}</div>
+          </div>
+          <button onClick={dismissNudge} title="Dismiss" style={{flexShrink:0,background:"none",border:"none",color:T.dim,fontSize:18,lineHeight:1,padding:"2px 4px",marginTop:-2,transition:"color .15s"}} onMouseEnter={e=>e.target.style.color=T.sub} onMouseLeave={e=>e.target.style.color=T.dim}>✕</button>
+        </div>
+      )}
 
       {/* ── HERO ROW: greeting + bank balance ── */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:12}}>
