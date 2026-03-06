@@ -181,11 +181,8 @@ function Login({onLogin,profile,T}) {
       <div className="anim" style={{width:420,background:T.surf,border:`1px solid ${T.bord}`,borderRadius:24,padding:"48px 44px",boxShadow:T.shadowLg}}>
         {/* Gullak illustration + branding */}
         <div style={{textAlign:"center",marginBottom:40}}>
-          <div style={{display:"flex",justifyContent:"center",marginBottom:16}}>
-            <GullakIllustration size={96}/>
-          </div>
-          <div style={{fontSize:34,fontWeight:900,color:T.terra,letterSpacing:"-0.02em",fontFamily:"'Noto Sans Devanagari','Inter',sans-serif",marginTop:4}}>गुल्लक</div>
-          <div style={{fontSize:12,color:T.sub,marginTop:10,lineHeight:1.7,fontFamily:"'Noto Sans Devanagari','Inter',sans-serif",letterSpacing:".01em",fontWeight:400}}>हर पैसे का हिसाब,<br/>आपकी अपनी गुल्लक में 🏺</div>
+          <div style={{fontSize:42,fontWeight:900,color:T.terra,letterSpacing:"-0.04em",fontFamily:"'Inter',sans-serif"}}>Gullak</div>
+          <div style={{fontSize:13,color:T.sub,marginTop:10,fontFamily:"'Noto Sans Devanagari','Inter',sans-serif",fontWeight:500}}>आपकी अपनी गुल्लक</div>
         </div>
         {err&&<div style={{background:T.terraBg,border:`1px solid ${T.terraBord}`,borderRadius:10,padding:"11px 15px",color:T.terra,fontSize:13,marginBottom:20,fontWeight:500}}>{err}</div>}
         <div style={{marginBottom:16}}>
@@ -217,9 +214,9 @@ function TopBar({tab,setTab,view,setView,profile,dark,toggleDark,budget,tSpend,T
   return(
     <div style={{position:"sticky",top:0,zIndex:60,width:"100%",background:T.nav,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`1px solid ${T.bord}`}}>
       <div style={{width:"100%",display:"flex",alignItems:"center",padding:"10px 28px",gap:14,minHeight:64}}>
-        {/* Logo — illustration only */}
-        <div style={{flexShrink:0,marginRight:6,display:"flex",alignItems:"center"}}>
-          <GullakIllustration size={42}/>
+        {/* Logo — wordmark only */}
+        <div style={{flexShrink:0,marginRight:8}}>
+          <span style={{fontSize:18,fontWeight:900,color:T.terra,letterSpacing:"-0.04em",fontFamily:"'Inter',sans-serif"}}>Gullak</span>
         </div>
         {/* Dashboard — standalone button */}
         <button onClick={()=>setTab("overview")} style={{padding:"9px 20px",borderRadius:12,border:`1px solid ${tab==="overview"?T.marigold:T.bord}`,fontFamily:"inherit",fontSize:13.5,fontWeight:tab==="overview"?700:500,transition:"all .2s",background:tab==="overview"?T.marigold:T.raised,color:tab==="overview"?"white":T.sub,boxShadow:tab==="overview"?`0 2px 12px ${T.marigold}50`:"none",whiteSpace:"nowrap",flexShrink:0}}>
