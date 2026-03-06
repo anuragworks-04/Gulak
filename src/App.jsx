@@ -702,7 +702,6 @@ export default function App() {
   const[txns,sTxns]=useState([]);const[loading,sLoad]=useState(true);const[dbErr,sDbErr]=useState("");
   const[budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
   const[bankBalance,setBankBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
-  const[bankBalance,setBankBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
   const[profile,sProfRaw]=useState(()=>LS.get("gulak_profile",DEF_PROFILE));
   const[customCats,sCats]=useState(()=>LS.get("gulak_custom_cats",[]));
   const[editTarget,sET]=useState(null);const[toast,sToast]=useState(null);const[delId,sDel]=useState(null);const[alert,sAlert]=useState(null);
