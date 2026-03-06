@@ -322,11 +322,12 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
   const P={padding:"24px 28px"};
   const LBL={fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase"};
 
-  // ── YESTERDAY NUDGE ─────────────────────────────────────────────────────────
+  // ── YESTERDAY NUDGE — rolls over at midnight (12:00 AM) exactly ──────────────
+  // yesterdayKey is always the calendar day before today, computed fresh each render
   const yesterdayKey=useMemo(()=>{const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);},[]);
   const yesterdaySpent=useMemo(()=>txns.filter(t=>t.type==="debit"&&t.date===yesterdayKey).reduce((s,t)=>s+t.amount,0),[txns,yesterdayKey]);
-  // Strictly: yesterday's budget minus yesterday's actual spend — never touches today
-  const yesterdaySaved=budget-yesterdaySpent;
+  const yesterdaySaved=budget-yesterdaySpent; // positive = saved, negative = overspent
+  // Dismiss key scoped to today — new day = new key = banner reappears automatically at midnight
   const nudgeDismissKey="gulak_nudge_v2_"+todayKey;
   const[nudgeDismissed,setNudgeDismissed]=useState(()=>LS.get(nudgeDismissKey,false));
   const showNudge=budget>0&&!nudgeDismissed&&isCurrent;
@@ -334,41 +335,15 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
 
   const nudge=useMemo(()=>{
     if(!budget||!isCurrent)return null;
-    const pct2=Math.round(yesterdaySpent/budget*100);
-    // Always use the correct saved/over amount from yesterday
     const savedAmt=fmt(Math.abs(yesterdaySaved));
-    if(yesterdaySpent===0) return {
-      emoji:"✨", tone:"teal",
-      title:"You had a free day yesterday!",
-      msg:"No spending logged — your Gullak didn't lose a single rupee. Hope you had a great day. Come back and keep tracking!",
-    };
-    if(yesterdaySaved>0&&pct2<=50) return {
-      emoji:"🎉", tone:"teal",
-      title:`Wonderful! You saved ${savedAmt} yesterday.`,
-      msg:"That's the kind of day that makes a real difference. Every rupee saved is a rupee working for you. Keep it up!",
-    };
-    if(yesterdaySaved>0&&pct2<=80) return {
-      emoji:"😊", tone:"teal",
-      title:`Good going! You saved ${savedAmt} yesterday.`,
-      msg:"Steady and controlled — that's the Gullak way. Small savings every day add up to something beautiful.",
-    };
-    if(yesterdaySaved>0) return {
-      emoji:"👍", tone:"teal",
-      title:`You saved ${savedAmt} yesterday — nice!`,
-      msg:"Even saving a little is a win. You tracked your spending and stayed aware. That's what matters most.",
-    };
-    // Overspent — always gentle, never punishing
-    return {
-      emoji:"🌱", tone:"marigold",
-      title:"Yesterday was a bit heavy on spending.",
-      msg:"No worries at all — some days are like that. Today is a brand new day and your Gullak is ready for a fresh start. You've got this!",
-    };
+    if(yesterdaySpent===0)return{emoji:"✨",tone:"teal",title:"You had a free day yesterday!",msg:"No spending logged — your Gullak didn't lose a single rupee. Hope it was a great day. Come back and keep the streak going!"};
+    if(yesterdaySaved>0&&yesterdaySpent/budget<=0.5)return{emoji:"🎉",tone:"teal",title:`Wonderful! You saved ${savedAmt} yesterday.`,msg:"That's the kind of day that makes a real difference. Every rupee saved is a rupee working for you. Keep it up!"};
+    if(yesterdaySaved>0&&yesterdaySpent/budget<=0.8)return{emoji:"😊",tone:"teal",title:`Good going! You saved ${savedAmt} yesterday.`,msg:"Steady and controlled — that's the Gullak way. Small savings every day add up to something beautiful."};
+    if(yesterdaySaved>0)return{emoji:"👍",tone:"teal",title:`You saved ${savedAmt} yesterday — nice!`,msg:"Even saving a little is a win. You tracked your spending and stayed aware. That's what matters most."};
+    return{emoji:"🌱",tone:"marigold",title:"Yesterday was a bit heavy on spending.",msg:"No worries at all — some days are like that. Today is a brand new day and your Gullak is ready for a fresh start. You've got this!"};
   },[budget,yesterdaySpent,yesterdaySaved,isCurrent]);
 
-  const nudgePalette=nudge?{
-    teal:{bg:T.tealBg,bord:T.tealBord,accent:T.teal},
-    marigold:{bg:T.marigoldBg,bord:T.marigoldBord,accent:T.marigold},
-  }[nudge.tone]:null;
+  const nudgePalette=nudge?{teal:{bg:T.tealBg,bord:T.tealBord,accent:T.teal},marigold:{bg:T.marigoldBg,bord:T.marigoldBord,accent:T.marigold}}[nudge.tone]:null;
 
   return(
     <div className="anim" style={{display:"flex",flexDirection:"column",gap:20,width:"100%",maxWidth:1100,margin:"0 auto"}}>
@@ -376,12 +351,12 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
       {/* ── YESTERDAY NUDGE BANNER ── */}
       {showNudge&&nudge&&nudgePalette&&(
         <div style={{background:nudgePalette.bg,border:`1px solid ${nudgePalette.bord}`,borderRadius:18,padding:"20px 24px",display:"flex",alignItems:"flex-start",gap:16,animation:"fadeUp .4s cubic-bezier(.22,1,.36,1) both"}}>
-          <div style={{fontSize:32,lineHeight:1,flexShrink:0,marginTop:2}}>{nudge.emoji}</div>
+          <div style={{fontSize:30,lineHeight:1,flexShrink:0,marginTop:2}}>{nudge.emoji}</div>
           <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:16,fontWeight:800,color:nudgePalette.accent,letterSpacing:"-0.02em",marginBottom:5}}>{nudge.title}</div>
-            <div style={{fontSize:13.5,color:T.sub,lineHeight:1.65}}>{nudge.msg}</div>
+            <div style={{fontSize:15,fontWeight:800,color:nudgePalette.accent,letterSpacing:"-0.02em",marginBottom:4}}>{nudge.title}</div>
+            <div style={{fontSize:13,color:T.sub,lineHeight:1.65}}>{nudge.msg}</div>
           </div>
-          <button onClick={dismissNudge} title="Dismiss" style={{flexShrink:0,background:"none",border:"none",color:T.dim,fontSize:18,lineHeight:1,padding:"2px 4px",marginTop:-2,transition:"color .15s"}} onMouseEnter={e=>e.target.style.color=T.sub} onMouseLeave={e=>e.target.style.color=T.dim}>✕</button>
+          <button onClick={dismissNudge} title="Dismiss" style={{flexShrink:0,background:"none",border:"none",color:T.dim,fontSize:16,lineHeight:1,padding:"2px 4px",marginTop:-2,cursor:"pointer"}}>✕</button>
         </div>
       )}
 
@@ -392,7 +367,7 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
           <div style={{fontSize:28,fontWeight:900,color:T.text,letterSpacing:"-0.04em"}}>{greet}, {name}</div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{...LBL,marginBottom:6}}>Bank Balance</div>
+          <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase",marginBottom:6}}>Bank Balance</div>
           <div style={{fontSize:42,fontWeight:900,color:bankBalance>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{bankBalance<0?"-":""}{Number(Math.abs(bankBalance)).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
           <div style={{fontSize:11.5,color:T.sub,marginTop:5}}>all-time income − expenses</div>
         </div>
@@ -402,32 +377,23 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
 
       {/* ── ROW 1: Month summary + savings + sparkline ── */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16}}>
-
-        {/* Spent this month */}
-        <div className="card" style={{...P,background:T.terraBg,borderColor:T.terraBord}}>
-          <div style={{...LBL,marginBottom:14,color:T.terra}}>Spent — {MONTHS[selMonth]}</div>
+        <div className="card" style={{padding:"24px 28px",background:T.terraBg,borderColor:T.terraBord}}>
+          <div style={{fontSize:10.5,fontWeight:700,color:T.terra,letterSpacing:".09em",textTransform:"uppercase",marginBottom:14}}>Spent — {MONTHS[selMonth]}</div>
           <div style={{fontSize:34,fontWeight:900,color:T.terra,letterSpacing:"-0.05em",lineHeight:1,marginBottom:12}}>{fmt(monthSpent)}</div>
           <button onClick={()=>setTab("expense")} style={{fontSize:11.5,color:T.terra,background:"none",border:`1px solid ${T.terraBord}`,borderRadius:8,padding:"5px 12px",fontFamily:"inherit",fontWeight:600,cursor:"pointer"}}>View expenses →</button>
         </div>
-        {/* Received this month */}
-        <div className="card" style={{...P,background:T.tealBg,borderColor:T.tealBord}}>
-          <div style={{...LBL,marginBottom:14,color:T.teal}}>Received — {MONTHS[selMonth]}</div>
+        <div className="card" style={{padding:"24px 28px",background:T.tealBg,borderColor:T.tealBord}}>
+          <div style={{fontSize:10.5,fontWeight:700,color:T.teal,letterSpacing:".09em",textTransform:"uppercase",marginBottom:14}}>Received — {MONTHS[selMonth]}</div>
           <div style={{fontSize:34,fontWeight:900,color:T.teal,letterSpacing:"-0.05em",lineHeight:1,marginBottom:12}}>{fmt(monthReceived)}</div>
           <button onClick={()=>setTab("income")} style={{fontSize:11.5,color:T.teal,background:"none",border:`1px solid ${T.tealBord}`,borderRadius:8,padding:"5px 12px",fontFamily:"inherit",fontWeight:600,cursor:"pointer"}}>View income →</button>
         </div>
-
-        {/* Lifetime savings */}
-        <div className="card" style={{...P,background:lifetimeSavings>=0?T.tealBg:T.terraBg,borderColor:lifetimeSavings>=0?T.tealBord:T.terraBord}}>
-          <div style={{...LBL,marginBottom:18}}>Lifetime Savings</div>
-          <div style={{fontSize:36,fontWeight:900,color:lifetimeSavings>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>
-            {lifetimeSavings<0?"-":""}{Number(Math.abs(lifetimeSavings)).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
-          </div>
+        <div className="card" style={{padding:"24px 28px",background:lifetimeSavings>=0?T.tealBg:T.terraBg,borderColor:lifetimeSavings>=0?T.tealBord:T.terraBord}}>
+          <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase",marginBottom:14}}>Lifetime Savings</div>
+          <div style={{fontSize:36,fontWeight:900,color:lifetimeSavings>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{lifetimeSavings<0?"-":""}{Number(Math.abs(lifetimeSavings)).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
           <div style={{fontSize:12,color:T.sub,marginTop:10}}>Since you started tracking</div>
         </div>
-
-        {/* Sparkline */}
-        <div className="card" style={P}>
-          <div style={{...LBL,marginBottom:16}}>Last 14 Days</div>
+        <div className="card" style={{padding:"24px 28px"}}>
+          <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase",marginBottom:16}}>Last 14 Days</div>
           <div style={{display:"flex",alignItems:"flex-end",gap:3,height:76}}>
             {last14.map(d=>{
               const h2=d.spend>0?Math.max(Math.round(d.spend/maxS*100),4):0;
@@ -444,17 +410,16 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
         </div>
       </div>
 
-      {/* ── ROW 2: Budget cards (separate entity as requested) ── */}
+      {/* ── ROW 2: Budget cards ── */}
       {budget>0&&<>
         <div style={{height:1,background:`linear-gradient(to right,transparent,${T.bord},transparent)`}}/>
         <div>
-          <div style={{...LBL,marginBottom:14}}>Budget Tracker</div>
+          <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase",marginBottom:14}}>Budget Tracker</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
-            {/* Daily budget */}
-            {isCurrent&&<div className="card" style={P}>
+            {isCurrent&&<div className="card" style={{padding:"24px 28px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                 <div>
-                  <div style={{...LBL,marginBottom:6}}>Today's Budget</div>
+                  <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase",marginBottom:6}}>Today's Budget</div>
                   <div style={{fontSize:30,fontWeight:900,color:bc,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(Math.max(0,budget-todaySpent))} <span style={{fontSize:14,fontWeight:500,color:T.sub}}>left</span></div>
                 </div>
                 <div style={{fontSize:13,fontWeight:700,color:bc,background:T.raised,borderRadius:99,padding:"3px 10px"}}>{bp}% used</div>
@@ -466,11 +431,10 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
               </div>
               {todaySaved!==0&&<div style={{marginTop:12,fontSize:12.5,fontWeight:600,color:todaySaved>=0?T.teal:T.terra}}>{todaySaved>=0?"Saved":"Over by"} {fmt(Math.abs(todaySaved))} today</div>}
             </div>}
-            {/* Monthly budget */}
-            <div className="card" style={P}>
+            <div className="card" style={{padding:"24px 28px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
                 <div>
-                  <div style={{...LBL,marginBottom:6}}>{MONTHS[selMonth]} Budget</div>
+                  <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase",marginBottom:6}}>{MONTHS[selMonth]} Budget</div>
                   <div style={{fontSize:30,fontWeight:900,color:mbc,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthLeft)} <span style={{fontSize:14,fontWeight:500,color:T.sub}}>left</span></div>
                 </div>
                 <div style={{fontSize:13,fontWeight:700,color:mbc,background:T.raised,borderRadius:99,padding:"3px 10px"}}>{monthPct}% used</div>
@@ -485,12 +449,12 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
         </div>
       </>}
 
-      {/* ── ROW 3: Monthly insights ── */}
+      {/* ── ROW 3: Category insights ── */}
       {catMap.length>0&&<>
         <div style={{height:1,background:`linear-gradient(to right,transparent,${T.bord},transparent)`}}/>
         <div>
-          <div style={{...LBL,marginBottom:14}}>Monthly Insights — Where the Money Went</div>
-          <div className="card" style={P}>
+          <div style={{fontSize:10.5,fontWeight:700,color:T.sub,letterSpacing:".09em",textTransform:"uppercase",marginBottom:14}}>Monthly Insights — Where the Money Went</div>
+          <div className="card" style={{padding:"24px 28px"}}>
             <div style={{display:"flex",flexDirection:"column",gap:14}}>
               {catMap.slice(0,6).map(([cat,amt])=>{
                 const w=Math.round(amt/catMap[0][1]*100);
@@ -499,18 +463,17 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
                   <div key={cat}>
                     <div style={{display:"flex",justifyContent:"space-between",marginBottom:7,alignItems:"center"}}>
                       <span style={{fontSize:13.5,color:T.text,fontWeight:500}}>{CAT_ICON[cat]||"📦"} {cat}</span>
-                      <div style={{display:"flex",gap:12,alignItems:"center"}}>
-                        <span style={{fontSize:11,color:T.sub,background:T.raised,borderRadius:99,padding:"2px 8px"}}>{pctOfMonth}%</span>
-                        <span style={{fontSize:14,fontWeight:700,color:T.marigold,minWidth:72,textAlign:"right"}}>{fmt(amt)}</span>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{fontSize:11,color:T.sub}}>{pctOfMonth}%</span>
+                        <span style={{fontSize:13.5,fontWeight:700,color:T.marigold}}>{fmt(amt)}</span>
                       </div>
                     </div>
-                    <div style={{height:3,background:T.bord,borderRadius:99,overflow:"hidden"}}>
-                      <div style={{width:w+"%",height:"100%",background:T.marigold,borderRadius:99,transition:"width .8s cubic-bezier(.22,1,.36,1)"}}/>
-                    </div>
+                    <Bar val={w} max={100} color={T.marigold} T={T} h={4}/>
                   </div>
                 );
               })}
             </div>
+            <button onClick={()=>setTab("expense")} style={{marginTop:18,fontSize:11.5,color:T.terra,background:"none",border:`1px solid ${T.terraBord}`,borderRadius:8,padding:"5px 12px",fontFamily:"inherit",fontWeight:600,cursor:"pointer"}}>View all expenses →</button>
           </div>
         </div>
       </>}
@@ -518,7 +481,6 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
   );
 }
 
-// DASHBOARD
 function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,selYear,bankBalance}) {
   const isExp=view==="expense";
   const nowM=new Date().getMonth();const nowY=new Date().getFullYear();
