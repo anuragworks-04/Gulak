@@ -93,22 +93,14 @@ function Bar({val,max,color,h=5,T}) {
   return <div style={{background:T.mode==="dark"?"rgba(255,255,255,.06)":"rgba(0,0,0,.07)",borderRadius:99,height:h,overflow:"hidden"}}><div style={{width:w+"%",height:"100%",background:color,borderRadius:99,transition:"width .7s cubic-bezier(.22,1,.36,1)"}}/></div>;
 }
 
-// ─── GULLAK LOGO MARK — minimal geometric, fintech aesthetic ─────────────────
-function GullakIllustration({size=80,color="#E8693A"}) {
-  // A stylised coin dropping into a pot: circle with a rectangular slot, clean lines
-  const s=size;
+// ─── GULLAK LOGO MARK — clean rupee coin, fintech grade ─────────────────────
+function GullakIllustration({size=32,color="#E8693A"}) {
+  // A minimal rupee coin: outer ring + ₹ inside. Timeless, professional, Indian.
   return(
-    <svg width={s} height={s} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Pot body — rounded trapezoid */}
-      <path d="M7 17 Q6 34 20 36 Q34 34 33 17 Z" fill={color} opacity="0.15"/>
-      <path d="M7 17 Q6 34 20 36 Q34 34 33 17 Z" stroke={color} strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
-      {/* Pot rim */}
-      <path d="M5 17 Q5 14 20 14 Q35 14 35 17" stroke={color} strokeWidth="1.8" strokeLinecap="round" fill="none"/>
-      {/* Coin slot */}
-      <rect x="16" y="12" width="8" height="2.5" rx="1.25" fill={color}/>
-      {/* Coin — small circle above slot with motion lines */}
-      <circle cx="20" cy="7.5" r="3" stroke={color} strokeWidth="1.5" fill="none"/>
-      <line x1="20" y1="10.5" x2="20" y2="11.5" stroke={color} strokeWidth="1.2" strokeLinecap="round"/>
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="14" stroke={color} strokeWidth="1.8" fill="none"/>
+      <circle cx="16" cy="16" r="10" stroke={color} strokeWidth="0.7" fill="none" opacity="0.3"/>
+      <text x="16" y="21" textAnchor="middle" fontSize="13" fontWeight="700" fill={color} fontFamily="'Inter',system-ui,sans-serif">₹</text>
     </svg>
   );
 }
@@ -156,11 +148,6 @@ function TopBar({tab,setTab,view,setView,profile,dark,toggleDark,budget,tSpend,T
   const bc=bp>=100?T.terra:bp>=80?"#F5A623":T.teal;
   const prevMonth=()=>{if(selMonth===0){setSelMonth(11);setSelYear(y=>y-1);}else setSelMonth(m=>m-1);};
   const nextMonth=()=>{if(selMonth===11){setSelMonth(0);setSelYear(y=>y+1);}else setSelMonth(m=>m+1);};
-  const NAV=[
-    {id:"overview", label:"Dashboard", color:T.marigold},
-    {id:"expense",  label:"Expenses",  color:T.terra},
-    {id:"income",   label:"Income",    color:T.teal},
-  ];
   return(
     <div style={{position:"sticky",top:0,zIndex:60,width:"100%",background:T.nav,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`1px solid ${T.bord}`}}>
       <div style={{width:"100%",display:"flex",alignItems:"center",padding:"10px 28px",gap:14,minHeight:64}}>
@@ -169,12 +156,16 @@ function TopBar({tab,setTab,view,setView,profile,dark,toggleDark,budget,tSpend,T
           <GullakIllustration size={32} color={T.terra}/>
           <span style={{fontSize:18,fontWeight:900,color:T.terra,letterSpacing:"-0.04em"}}>Gullak</span>
         </div>
-        {/* Nav tabs */}
-        <div style={{display:"flex",background:T.raised,border:`1px solid ${T.bord}`,borderRadius:14,padding:4,gap:2,flexShrink:0}}>
-          {NAV.map(({id,label,color})=>{
+        {/* Dashboard — standalone button */}
+        <button onClick={()=>setTab("overview")} style={{padding:"9px 20px",borderRadius:12,border:`1px solid ${tab==="overview"?T.marigold:T.bord}`,fontFamily:"inherit",fontSize:13.5,fontWeight:tab==="overview"?700:500,transition:"all .2s",background:tab==="overview"?T.marigold:T.raised,color:tab==="overview"?"white":T.sub,boxShadow:tab==="overview"?`0 2px 12px ${T.marigold}50`:"none",whiteSpace:"nowrap",flexShrink:0}}>
+          Dashboard
+        </button>
+        {/* Expenses / Income toggle — separate pill group */}
+        <div style={{display:"flex",background:T.raised,border:`1px solid ${T.bord}`,borderRadius:12,padding:3,gap:2,flexShrink:0}}>
+          {[{id:"expense",label:"Expenses",color:T.terra},{id:"income",label:"Income",color:T.teal}].map(({id,label,color})=>{
             const active=tab===id;
             return(
-              <button key={id} onClick={()=>setTab(id)} style={{padding:"8px 20px",borderRadius:10,border:"none",fontFamily:"inherit",fontSize:13.5,fontWeight:active?700:500,transition:"all .2s",background:active?color:"transparent",color:active?"white":T.sub,boxShadow:active?`0 2px 12px ${color}50`:"none",whiteSpace:"nowrap",letterSpacing:active?".01em":"0"}}>
+              <button key={id} onClick={()=>setTab(id)} style={{padding:"8px 20px",borderRadius:9,border:"none",fontFamily:"inherit",fontSize:13.5,fontWeight:active?700:500,transition:"all .2s",background:active?color:"transparent",color:active?"white":T.sub,boxShadow:active?`0 2px 12px ${color}50`:"none",whiteSpace:"nowrap"}}>
                 {label}
               </button>
             );
@@ -280,39 +271,36 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
         </div>
         <div style={{textAlign:"right"}}>
           <div style={{...LBL,marginBottom:6}}>Bank Balance</div>
-          <div style={{fontSize:42,fontWeight:900,color:bankBalance>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{bankBalance>=0?"+":""}{fmt(bankBalance)}</div>
+          <div style={{fontSize:42,fontWeight:900,color:bankBalance>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{bankBalance<0?"-":""}{Number(Math.abs(bankBalance)).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
           <div style={{fontSize:11.5,color:T.sub,marginTop:5}}>all-time income − expenses</div>
         </div>
       </div>
 
       <div style={{height:1,background:`linear-gradient(to right,transparent,${T.bord},transparent)`}}/>
 
-      {/* ── ROW 1: Month summary (just spent + received, once) ── */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16}}>
+      {/* ── ROW 1: Month summary + savings + sparkline ── */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:16}}>
 
-        {/* This month — spent & received together, once */}
-        <div className="card" style={P}>
-          <div style={{...LBL,marginBottom:18}}>{MONTHS[selMonth]} Summary</div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end"}}>
-            <div>
-              <div style={{fontSize:11,color:T.sub,marginBottom:4}}>Spent</div>
-              <div style={{fontSize:30,fontWeight:900,color:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthSpent)}</div>
-            </div>
-            <div style={{textAlign:"right"}}>
-              <div style={{fontSize:11,color:T.sub,marginBottom:4}}>Received</div>
-              <div style={{fontSize:24,fontWeight:800,color:T.teal,letterSpacing:"-0.04em",lineHeight:1}}>{fmt(monthReceived)}</div>
-            </div>
-          </div>
-          <button onClick={()=>setTab("expense")} style={{marginTop:18,fontSize:11.5,color:T.terra,background:"none",border:`1px solid ${T.terraBord}`,borderRadius:8,padding:"5px 12px",fontFamily:"inherit",fontWeight:600,cursor:"pointer"}}>View expenses →</button>
+        {/* Spent this month */}
+        <div className="card" style={{...P,background:T.terraBg,borderColor:T.terraBord}}>
+          <div style={{...LBL,marginBottom:14,color:T.terra}}>Spent — {MONTHS[selMonth]}</div>
+          <div style={{fontSize:34,fontWeight:900,color:T.terra,letterSpacing:"-0.05em",lineHeight:1,marginBottom:12}}>{fmt(monthSpent)}</div>
+          <button onClick={()=>setTab("expense")} style={{fontSize:11.5,color:T.terra,background:"none",border:`1px solid ${T.terraBord}`,borderRadius:8,padding:"5px 12px",fontFamily:"inherit",fontWeight:600,cursor:"pointer"}}>View expenses →</button>
+        </div>
+        {/* Received this month */}
+        <div className="card" style={{...P,background:T.tealBg,borderColor:T.tealBord}}>
+          <div style={{...LBL,marginBottom:14,color:T.teal}}>Received — {MONTHS[selMonth]}</div>
+          <div style={{fontSize:34,fontWeight:900,color:T.teal,letterSpacing:"-0.05em",lineHeight:1,marginBottom:12}}>{fmt(monthReceived)}</div>
+          <button onClick={()=>setTab("income")} style={{fontSize:11.5,color:T.teal,background:"none",border:`1px solid ${T.tealBord}`,borderRadius:8,padding:"5px 12px",fontFamily:"inherit",fontWeight:600,cursor:"pointer"}}>View income →</button>
         </div>
 
         {/* Lifetime savings */}
         <div className="card" style={{...P,background:lifetimeSavings>=0?T.tealBg:T.terraBg,borderColor:lifetimeSavings>=0?T.tealBord:T.terraBord}}>
           <div style={{...LBL,marginBottom:18}}>Lifetime Savings</div>
           <div style={{fontSize:36,fontWeight:900,color:lifetimeSavings>=0?T.teal:T.terra,letterSpacing:"-0.05em",lineHeight:1}}>
-            {lifetimeSavings>=0?"+":""}{fmt(lifetimeSavings)}
+            {lifetimeSavings<0?"-":""}{Number(Math.abs(lifetimeSavings)).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})}
           </div>
-          <div style={{fontSize:12,color:T.sub,marginTop:10,lineHeight:1.6}}>Daily budget − actual spend,<br/>every day cumulated</div>
+          <div style={{fontSize:12,color:T.sub,marginTop:10}}>Since you started tracking</div>
         </div>
 
         {/* Sparkline */}
@@ -347,7 +335,7 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
                   <div style={{...LBL,marginBottom:6}}>Today's Budget</div>
                   <div style={{fontSize:30,fontWeight:900,color:bc,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(Math.max(0,budget-todaySpent))} <span style={{fontSize:14,fontWeight:500,color:T.sub}}>left</span></div>
                 </div>
-                <div style={{fontSize:28,fontWeight:900,color:bc,opacity:.3}}>{bp}%</div>
+                <div style={{fontSize:13,fontWeight:700,color:bc,background:T.raised,borderRadius:99,padding:"3px 10px"}}>{bp}% used</div>
               </div>
               <Bar val={todaySpent} max={budget} color={bc} h={6} T={T}/>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,color:T.sub,marginTop:8}}>
@@ -363,7 +351,7 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
                   <div style={{...LBL,marginBottom:6}}>{MONTHS[selMonth]} Budget</div>
                   <div style={{fontSize:30,fontWeight:900,color:mbc,letterSpacing:"-0.05em",lineHeight:1}}>{fmt(monthLeft)} <span style={{fontSize:14,fontWeight:500,color:T.sub}}>left</span></div>
                 </div>
-                <div style={{fontSize:28,fontWeight:900,color:mbc,opacity:.3}}>{monthPct}%</div>
+                <div style={{fontSize:13,fontWeight:700,color:mbc,background:T.raised,borderRadius:99,padding:"3px 10px"}}>{monthPct}% used</div>
               </div>
               <Bar val={monthSpent} max={monthPool} color={mbc} h={6} T={T}/>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,color:T.sub,marginTop:8}}>
@@ -1045,7 +1033,7 @@ export default function App() {
       {!loggedIn&&<div style={{position:"fixed",inset:0,zIndex:100}}><Login onLogin={()=>sLI(true)} profile={profile} T={T}/></div>}
       {loggedIn&&bankSetupNeeded&&<BankSetupModal T={T} onSave={handleBankSetup}/>}
       {alert&&<BudgetAlert {...alert} T={T}/>}
-      {toast&&<div style={{position:"fixed",top:18,right:18,zIndex:200,background:T.surf,border:`1px solid ${toast.type==="err"?T.redBord:T.goldBord}`,borderRadius:11,padding:"12px 20px",color:toast.type==="err"?T.red:T.gold,fontSize:14,fontWeight:600,boxShadow:T.shadowLg,animation:"fadeIn .25s both"}}>{toast.msg}</div>}
+      {toast&&<div style={{position:"fixed",top:18,right:18,zIndex:200,background:T.surf,border:`1px solid ${toast.type==="err"?T.terraBord:T.marigoldBord}`,borderRadius:11,padding:"12px 20px",color:toast.type==="err"?T.terra:T.marigold,fontSize:14,fontWeight:600,boxShadow:T.shadowLg,animation:"fadeIn .25s both"}}>{toast.msg}</div>}
       {delId!==null&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.65)",zIndex:150,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{background:T.surf,border:`1px solid ${T.bord}`,borderRadius:16,padding:28,width:320,textAlign:"center",boxShadow:T.shadowLg}}><div style={{fontSize:16,fontWeight:800,color:T.text,marginBottom:8}}>Delete transaction?</div><div style={{fontSize:14,color:T.sub,marginBottom:22}}>This cannot be undone.</div><div style={{display:"flex",gap:10}}><button onClick={()=>sDel(null)} style={{flex:1,background:T.raised,border:`1px solid ${T.bord}`,borderRadius:9,padding:"11px",color:T.sub,fontFamily:"inherit",fontSize:14}}>Cancel</button><button onClick={handleDelete} style={{flex:1,background:T.redBg,border:`1px solid ${T.redBord}`,borderRadius:9,padding:"11px",color:T.red,fontWeight:700,fontFamily:"inherit",fontSize:14}}>Delete</button></div></div></div>}
       {loggedIn&&<>
         <TopBar tab={tab} setTab={t=>{sTab(t);if(t!=="entry")sET(null);}} view={view} setView={sView} profile={profile} dark={dark} toggleDark={()=>setDark(d=>!d)} budget={budget} tSpend={tSpend} T={T} onAdd={()=>{sET(null);sTab("entry");}} selMonth={selMonth} setSelMonth={setSelMonth} selYear={selYear} setSelYear={setSelYear}/>
