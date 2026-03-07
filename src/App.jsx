@@ -7,9 +7,9 @@ const H = { "Content-Type":"application/json", apikey:SUPA_KEY, Authorization:`B
 const API = (p,q="") => `${SUPA_URL}/rest/v1/${p}${q}`;
 
 const sb = {
-  async all() { const r=await fetch(API("transactions","?order=created_at.desc"),{headers:H}); if(!r.ok)throw new Error(await r.text()); return(await r.json()).map(x=>({...x,amount:Number(x.amount)})); },
-  async insert(t) { const r=await fetch(API("transactions"),{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify(t)}); if(!r.ok)throw new Error(await r.text()); const[row]=await r.json(); return{...row,amount:Number(row.amount)}; },
-  async update(t) { const r=await fetch(API("transactions",`?id=eq.${t.id}`),{method:"PATCH",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify(t)}); if(!r.ok)throw new Error(await r.text()); },
+  async all() { const r=await fetch(API("transactions","?order=created_at.desc"),{headers:H}); if(!r.ok)throw new Error(await r.text()); return(await r.json()).map(x=>({...x,amount:Number(x.amount),exclude_budget:x.description?.startsWith("[NB] ")||false,description:(x.description?.startsWith("[NB] ")?x.description.slice(5):x.description)||""})); },
+  async insert(t) { const payload={...t,description:t.exclude_budget?"[NB] "+t.description:t.description};delete payload.exclude_budget;const r=await fetch(API("transactions"),{method:"POST",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify(payload)}); if(!r.ok)throw new Error(await r.text()); const[row]=await r.json(); return{...row,amount:Number(row.amount),exclude_budget:row.description?.startsWith("[NB] ")||false,description:(row.description?.startsWith("[NB] ")?row.description.slice(5):row.description)||""}; },
+  async update(t) { const payload={...t,description:t.exclude_budget?"[NB] "+t.description:t.description};delete payload.exclude_budget;const r=await fetch(API("transactions",`?id=eq.${t.id}`),{method:"PATCH",headers:{...H,"Prefer":"return=representation"},body:JSON.stringify(payload)}); if(!r.ok)throw new Error(await r.text()); },
   async remove(id) { const r=await fetch(API("transactions",`?id=eq.${id}`),{method:"DELETE",headers:H}); if(!r.ok)throw new Error(await r.text()); },
   async clearAll() { const r=await fetch(API("transactions","?id=gte.0"),{method:"DELETE",headers:H}); if(!r.ok)throw new Error(await r.text()); },
   async getSettings() { const r=await fetch(API("settings","?id=eq.1"),{headers:H}); if(!r.ok)throw new Error(await r.text()); return(await r.json())[0]||null; },
@@ -1108,30 +1108,37 @@ export default function App() {
   useEffect(()=>{LS.set("gulak_custom_cats",customCats);},[customCats]);
   useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,bank_balance:bankBalance,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
 
-  const setBankBalance=vOrFn=>{setBankBalanceRaw(prev=>{const n=typeof vOrFn==="function"?Math.max(0,vOrFn(prev)):Math.max(0,Number(vOrFn)||0);LS.set("gulak_bank",n);if(didLoad.current)sb.saveSettings({budget,bank_balance:n,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});return n;});};
+  // Bank balance can go negative (overspent) — no clamping at zero
+  const setBankBalance=vOrFn=>{setBankBalanceRaw(prev=>{const n=typeof vOrFn==="function"?vOrFn(prev):Number(vOrFn)||0;LS.set("gulak_bank",n);if(didLoad.current)sb.saveSettings({budget,bank_balance:n,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});return n;});};
   const handleBankSetup=async(amount)=>{LS.set("gulak_bank_set",true);bankEverSet.current=true;setBankBalance(amount);setBankSetupNeeded(false);};
   const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,bank_balance:bankBalance,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
-  const handleAdd=async t=>{try{const s=await sb.insert(t);sTxns(p=>[s,...p]);
-    if(t.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(t.method))setBankBalance(b=>b-t.amount);
-    if(t.type==="credit"&&["UPI","Bank Transfer"].includes(t.method))setBankBalance(b=>b+t.amount);
-    toast2("Saved ✓");}catch{toast2("Save failed","err");}};
+
+  const handleAdd=async t=>{
+    try{
+      const s=await sb.insert(t);
+      sTxns(p=>[s,...p]);
+      if(t.type==="debit")setBankBalance(b=>b-t.amount);
+      if(t.type==="credit")setBankBalance(b=>b+t.amount);
+      toast2("Saved ✓");
+    }catch(e){toast2("Save failed","err");}
+  };
   const handleUpdate=async t=>{try{
     const old2=txns.find(x=>x.id===t.id);
     if(old2){
-      if(old2.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(old2.method))setBankBalance(b=>b+old2.amount);
-      if(old2.type==="credit"&&["UPI","Bank Transfer"].includes(old2.method))setBankBalance(b=>b-old2.amount);
+      if(old2.type==="debit")setBankBalance(b=>b+old2.amount);
+      if(old2.type==="credit")setBankBalance(b=>b-old2.amount);
     }
-    await sb.update(t);sTxns(p=>p.map(x=>x.id===t.id?t:x));
-    if(t.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(t.method))setBankBalance(b=>b-t.amount);
-    if(t.type==="credit"&&["UPI","Bank Transfer"].includes(t.method))setBankBalance(b=>b+t.amount);
+    await sb.update(t);sTxns(p=>p.map(x=>x.id===t.id?{...t,exclude_budget:t.exclude_budget||false}:x));
+    if(t.type==="debit")setBankBalance(b=>b-t.amount);
+    if(t.type==="credit")setBankBalance(b=>b+t.amount);
     sET(null);sTab("dashboard");toast2("Updated ✓");}catch{toast2("Failed","err");}};
   const handleEdit=t=>{sET(t);sTab("entry");};
   const handleDelete=async()=>{try{
     const t=txns.find(x=>x.id===delId);
     if(t){
-      if(t.type==="debit"&&["UPI","Bank Transfer","Debit Card"].includes(t.method))setBankBalance(b=>b+t.amount);
-      if(t.type==="credit"&&["UPI","Bank Transfer"].includes(t.method))setBankBalance(b=>b-t.amount);
+      if(t.type==="debit")setBankBalance(b=>b+t.amount);
+      if(t.type==="credit")setBankBalance(b=>b-t.amount);
     }
     await sb.remove(delId);sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");}catch{toast2("Failed","err");}};
   const clearData=async()=>{if(!window.confirm("Delete ALL transactions?"))return;try{await sb.clearAll();sTxns([]);toast2("Cleared","err");}catch{toast2("Failed","err");}};
