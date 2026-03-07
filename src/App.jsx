@@ -1118,7 +1118,7 @@ export default function App() {
     try{
       const s=await sb.insert(t);
       sTxns(p=>[s,...p]);
-      if(t.type==="debit")setBankBalance(b=>b-t.amount);
+      if(t.type==="debit"&&t.method!=="Credit Card")setBankBalance(b=>b-t.amount);
       if(t.type==="credit")setBankBalance(b=>b+t.amount);
       toast2("Saved ✓");
     }catch(e){toast2("Save failed","err");}
@@ -1126,18 +1126,18 @@ export default function App() {
   const handleUpdate=async t=>{try{
     const old2=txns.find(x=>x.id===t.id);
     if(old2){
-      if(old2.type==="debit")setBankBalance(b=>b+old2.amount);
+      if(old2.type==="debit"&&old2.method!=="Credit Card")setBankBalance(b=>b+old2.amount);
       if(old2.type==="credit")setBankBalance(b=>b-old2.amount);
     }
     await sb.update(t);sTxns(p=>p.map(x=>x.id===t.id?{...t,exclude_budget:t.exclude_budget||false}:x));
-    if(t.type==="debit")setBankBalance(b=>b-t.amount);
+    if(t.type==="debit"&&t.method!=="Credit Card")setBankBalance(b=>b-t.amount);
     if(t.type==="credit")setBankBalance(b=>b+t.amount);
     sET(null);sTab("dashboard");toast2("Updated ✓");}catch{toast2("Failed","err");}};
   const handleEdit=t=>{sET(t);sTab("entry");};
   const handleDelete=async()=>{try{
     const t=txns.find(x=>x.id===delId);
     if(t){
-      if(t.type==="debit")setBankBalance(b=>b+t.amount);
+      if(t.type==="debit"&&t.method!=="Credit Card")setBankBalance(b=>b+t.amount);
       if(t.type==="credit")setBankBalance(b=>b-t.amount);
     }
     await sb.remove(delId);sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");}catch{toast2("Failed","err");}};
