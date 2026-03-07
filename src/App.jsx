@@ -835,75 +835,14 @@ function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T,cus
   const defType=view==="income"?"credit":"debit";
   const[form,sF]=useState(()=>editTarget?{...editTarget,amount:String(editTarget.amount)}:newForm(defType));
   useEffect(()=>{sF(editTarget?{...editTarget,amount:String(editTarget.amount)}:newForm(defType));},[editTarget,defType]);
-
-  // ── SPLIT BILL STATE ──────────────────────────────────────────────────────────
-  const[splitOn,setSplitOn]=useState(false);
-  const[totalPaid,setTotalPaid]=useState("");   // what you actually paid (e.g. ₹5000)
-  const[myShare,setMyShare]=useState("");        // your actual share (e.g. ₹1000)
-  const[reimbExpected,setReimbExpected]=useState(true); // will friends pay back?
-
-  const splitValid=splitOn&&parseFloat(totalPaid)>0&&parseFloat(myShare)>0&&parseFloat(myShare)<=parseFloat(totalPaid);
-  const reimbAmount=splitValid?parseFloat(totalPaid)-parseFloat(myShare):0;
-
   const allCats=[...BASE_CATS,...customCats];
-
-  // When split is on, the "amount" shown in the normal form is the full bill
-  // but what gets counted against budget is myShare only
-  const effectiveAmount=splitOn&&splitValid?parseFloat(myShare):parseFloat(form.amount)||0;
-  const valid=form.description&&form.date&&(splitOn?splitValid:(form.amount&&parseFloat(form.amount)>0));
-
+  const valid=form.description&&form.amount&&parseFloat(form.amount)>0&&form.date;
   const attempt=()=>{
-    if(!valid)return;
-    if(splitOn&&splitValid){
-      // Save full paid amount as expense (hits bank balance)
-      // but override budget impact to myShare only by storing split_share in notes
-      const fullAmt=parseFloat(totalPaid);
-      const share=parseFloat(myShare);
-      const reimb=fullAmt-share;
-      // Entry 1: full expense
-      const expEntry={...form,amount:fullAmt,description:`${form.description} (Split — full bill)`,split_share:share};
-      if(budget>0&&!editTarget){
-        const ts=txns.filter(t=>t.type==="debit"&&t.date===form.date).reduce((s,t)=>s+t.amount,0);
-        if((ts+share)/budget>=0.8){
-          setAlert({spent:ts,budget,pending:share,onConfirm:()=>{doSplitSave(expEntry,reimb);setAlert(null);},onCancel:()=>setAlert(null)});
-          return;
-        }
-      }
-      doSplitSave(expEntry,reimb);
-    } else {
-      const amt=parseFloat(form.amount);
-      if(form.type==="debit"&&budget>0&&!editTarget){
-        const ts=txns.filter(t=>t.type==="debit"&&t.date===form.date).reduce((s,t)=>s+t.amount,0);
-        if((ts+amt)/budget>=0.8){setAlert({spent:ts,budget,pending:amt,onConfirm:()=>{doSave(amt);setAlert(null);},onCancel:()=>setAlert(null)});return;}
-      }
-      doSave(amt);
-    }
+    if(!valid)return;const amt=parseFloat(form.amount);
+    if(form.type==="debit"&&budget>0&&!editTarget){const ts=txns.filter(t=>t.type==="debit"&&t.date===form.date).reduce((s,t)=>s+t.amount,0);if((ts+amt)/budget>=0.8){setAlert({spent:ts,budget,pending:amt,onConfirm:()=>{doSave(amt);setAlert(null);},onCancel:()=>setAlert(null)});return;}}
+    doSave(amt);
   };
-
-  const doSave=amt=>{
-    if(editTarget)onUpdate({...form,amount:amt,id:editTarget.id});
-    else{onAdd({...form,amount:amt});sF(newForm(defType));}
-  };
-
-  const doSplitSave=(expEntry,reimbAmt)=>{
-    // Add full expense entry (with split_share so budget uses myShare)
-    onAdd(expEntry);
-    // If reimbursement expected, add a pending credit entry
-    if(reimbExpected&&reimbAmt>0){
-      onAdd({
-        ...newForm("credit"),
-        date:form.date,
-        description:`${form.description} (Reimbursement received)`,
-        amount:reimbAmt,
-        category:"Reimbursement",
-        method:form.method,
-        type:"credit",
-      });
-    }
-    setSplitOn(false);setTotalPaid("");setMyShare("");
-    sF(newForm(defType));
-  };
-
+  const doSave=amt=>{if(editTarget)onUpdate({...form,amount:amt,id:editTarget.id});else{onAdd({...form,amount:amt});sF(newForm(defType));}};
   const F={width:"100%",background:T.raised,border:`1px solid ${T.bord}`,borderRadius:10,padding:"12px 14px",color:T.text,fontSize:14,fontFamily:"inherit",transition:"all .18s"};
   const L={fontSize:11,fontWeight:600,color:T.sub,letterSpacing:".07em",textTransform:"uppercase",marginBottom:7,display:"block"};
   return(
@@ -915,109 +854,28 @@ function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T,cus
             <label style={L}>Type</label>
             <div style={{display:"flex",background:T.raised,borderRadius:10,padding:4,gap:3}}>
               {[["debit","Expense"],["credit","Income"]].map(([tp,lb])=>(
-                <button key={tp} onClick={()=>{sF({...form,type:tp});if(tp==="credit")setSplitOn(false);}} style={{flex:1,padding:"10px",borderRadius:8,border:"none",fontFamily:"inherit",fontWeight:700,fontSize:14,transition:"all .18s",background:form.type===tp?(tp==="debit"?T.terraBg:T.tealBg):"transparent",color:form.type===tp?(tp==="debit"?T.terra:T.teal):T.sub}}>{lb}</button>
+                <button key={tp} onClick={()=>sF({...form,type:tp})} style={{flex:1,padding:"10px",borderRadius:8,border:"none",fontFamily:"inherit",fontWeight:700,fontSize:14,transition:"all .18s",background:form.type===tp?(tp==="debit"?T.terraBg:T.tealBg):"transparent",color:form.type===tp?(tp==="debit"?T.terra:T.teal):T.sub}}>{lb}</button>
               ))}
             </div>
           </div>
-
-          {/* ── SPLIT BILL TOGGLE — only for expenses ── */}
-          {form.type==="debit"&&!editTarget&&(
-            <div style={{marginBottom:20}}>
-              <button onClick={()=>{setSplitOn(s=>!s);setTotalPaid("");setMyShare("");}} style={{display:"flex",alignItems:"center",gap:10,width:"100%",background:splitOn?T.marigoldBg:T.raised,border:`1px solid ${splitOn?T.marigoldBord:T.bord}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",transition:"all .2s",fontFamily:"inherit"}}>
-                <span style={{fontSize:20}}>🤝</span>
-                <div style={{flex:1,textAlign:"left"}}>
-                  <div style={{fontSize:13.5,fontWeight:700,color:splitOn?T.marigold:T.text}}>Split Bill</div>
-                  <div style={{fontSize:11.5,color:T.sub,marginTop:1}}>Paid for others? Log your share only against budget</div>
-                </div>
-                <div style={{width:36,height:20,borderRadius:99,background:splitOn?T.marigold:T.bord,transition:"all .2s",position:"relative",flexShrink:0}}>
-                  <div style={{position:"absolute",top:3,left:splitOn?18:3,width:14,height:14,borderRadius:"50%",background:"white",transition:"all .2s",boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}/>
-                </div>
-              </button>
-            </div>
-          )}
-
-          {/* ── SPLIT BILL FIELDS ── */}
-          {splitOn&&(
-            <div style={{background:T.marigoldBg,border:`1px solid ${T.marigoldBord}`,borderRadius:14,padding:"18px 18px 14px",marginBottom:20}}>
-              <div style={{fontSize:11,fontWeight:700,color:T.marigold,letterSpacing:".08em",textTransform:"uppercase",marginBottom:14}}>Split Details</div>
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:14}}>
-                <div>
-                  <label style={{...L,color:T.marigold}}>Total Bill Paid (₹)</label>
-                  <input type="text" inputMode="numeric" value={totalPaid} onChange={e=>setTotalPaid(e.target.value.replace(/[^0-9.]/g,""))} placeholder="e.g. 5000" style={{...F,borderColor:T.marigoldBord}}/>
-                  <div style={{fontSize:11,color:T.sub,marginTop:4}}>Full amount you paid</div>
-                </div>
-                <div>
-                  <label style={{...L,color:T.marigold}}>Your Share (₹)</label>
-                  <input type="text" inputMode="numeric" value={myShare} onChange={e=>setMyShare(e.target.value.replace(/[^0-9.]/g,""))} placeholder="e.g. 1000" style={{...F,borderColor:parseFloat(myShare)>parseFloat(totalPaid)?T.terra:T.marigoldBord}}/>
-                  <div style={{fontSize:11,color:T.sub,marginTop:4}}>Counts against your budget</div>
-                </div>
-              </div>
-              {/* Live split summary */}
-              {splitValid&&(
-                <div style={{background:"rgba(0,0,0,.12)",borderRadius:10,padding:"12px 14px",marginBottom:14}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:6}}>
-                    <span style={{color:T.sub}}>Bank balance impact</span>
-                    <span style={{color:T.terra,fontWeight:700}}>−{fmt(totalPaid)}</span>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,marginBottom:6}}>
-                    <span style={{color:T.sub}}>Budget impact (your share)</span>
-                    <span style={{color:T.marigold,fontWeight:700}}>−{fmt(myShare)}</span>
-                  </div>
-                  {reimbExpected&&<div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,paddingTop:6,borderTop:`1px solid ${T.marigoldBord}`}}>
-                    <span style={{color:T.sub}}>Reimbursement (bank balance back)</span>
-                    <span style={{color:T.teal,fontWeight:700}}>+{fmt(reimbAmount)}</span>
-                  </div>}
-                </div>
-              )}
-              {/* Reimbursement toggle */}
-              <button onClick={()=>setReimbExpected(r=>!r)} style={{display:"flex",alignItems:"center",gap:8,background:"none",border:"none",cursor:"pointer",fontFamily:"inherit",padding:0}}>
-                <div style={{width:16,height:16,borderRadius:4,background:reimbExpected?T.teal:T.raised,border:`1.5px solid ${reimbExpected?T.teal:T.bord}`,display:"flex",alignItems:"center",justifyContent:"center",transition:"all .18s",flexShrink:0}}>
-                  {reimbExpected&&<span style={{color:"white",fontSize:10,lineHeight:1}}>✓</span>}
-                </div>
-                <span style={{fontSize:12.5,color:T.sub}}>Friends will reimburse me — add reimbursement to bank balance automatically</span>
-              </button>
-            </div>
-          )}
-
-          {/* Normal amount field — hidden when split is on */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
             <div><label style={L}>Date</label><input type="date" value={form.date} onChange={e=>sF({...form,date:e.target.value})} style={F}/></div>
-            {!splitOn&&<div><label style={L}>Amount (₹)</label><input type="text" inputMode="numeric" value={form.amount} onChange={e=>sF({...form,amount:e.target.value.replace(/[^0-9.]/g,"")})} placeholder="0.00" style={F}/></div>}
+            <div><label style={L}>Amount (₹)</label><input type="text" inputMode="numeric" value={form.amount} onChange={e=>sF({...form,amount:e.target.value.replace(/[^0-9.]/g,"")})} placeholder="0.00" style={F}/></div>
           </div>
-          <div style={{marginBottom:14}}><label style={L}>Description</label><input value={form.description} onChange={e=>sF({...form,description:e.target.value})} placeholder="e.g. Dinner at Punjab Grill…" style={F}/></div>
+          <div style={{marginBottom:14}}><label style={L}>Description</label><input value={form.description} onChange={e=>sF({...form,description:e.target.value})} placeholder="e.g. Zomato, Salary…" style={F}/></div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
             <div><label style={L}>Category</label><select value={form.category} onChange={e=>sF({...form,category:e.target.value})} style={{...F,cursor:"pointer"}}>{allCats.map(c=><option key={c}>{c}</option>)}</select></div>
             <div><label style={L}>Payment Method</label><select value={form.method} onChange={e=>sF({...form,method:e.target.value})} style={{...F,cursor:"pointer"}}>{METHODS.map(m=><option key={m}>{m}</option>)}</select></div>
           </div>
-
-          {/* Preview */}
-          {valid&&<div style={{background:T.raised,borderRadius:10,padding:"13px 16px",marginBottom:18,borderLeft:`3px solid ${splitOn?T.marigold:form.type==="debit"?T.terra:T.teal}`}}>
+          {valid&&<div style={{background:T.raised,borderRadius:10,padding:"13px 16px",marginBottom:18,borderLeft:`3px solid ${form.type==="debit"?T.terra:T.teal}`}}>
             <div style={{fontSize:10,color:T.sub,fontWeight:600,letterSpacing:".07em",textTransform:"uppercase",marginBottom:8}}>Preview</div>
-            {splitOn&&splitValid?(
-              <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div><div style={{fontWeight:600,color:T.text,fontSize:13}}>{form.description} (full bill)</div><div style={{fontSize:11,color:T.sub,marginTop:1}}>{form.category} · bank balance −{fmt(totalPaid)}</div></div>
-                  <div style={{fontSize:16,fontWeight:900,color:T.terra}}>−{fmt(totalPaid)}</div>
-                </div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",opacity:.75}}>
-                  <div><div style={{fontWeight:600,color:T.text,fontSize:13}}>Budget impact</div><div style={{fontSize:11,color:T.sub,marginTop:1}}>your share only</div></div>
-                  <div style={{fontSize:16,fontWeight:900,color:T.marigold}}>−{fmt(myShare)}</div>
-                </div>
-                {reimbExpected&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",opacity:.75}}>
-                  <div><div style={{fontWeight:600,color:T.text,fontSize:13}}>{form.description} (Reimbursement)</div><div style={{fontSize:11,color:T.sub,marginTop:1}}>bank balance +{fmt(reimbAmount)}</div></div>
-                  <div style={{fontSize:16,fontWeight:900,color:T.teal}}>+{fmt(reimbAmount)}</div>
-                </div>}
-              </div>
-            ):(
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div><div style={{fontWeight:600,color:T.text,fontSize:14}}>{form.description}</div><div style={{fontSize:12,color:T.sub,marginTop:2}}>{form.category} · {form.method}</div></div>
-                <div style={{fontSize:22,fontWeight:900,color:form.type==="credit"?T.teal:T.terra}}>{form.type==="credit"?"+":"−"}{fmt(form.amount)}</div>
-              </div>
-            )}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontWeight:600,color:T.text,fontSize:14}}>{form.description}</div><div style={{fontSize:12,color:T.sub,marginTop:2}}>{form.category} · {form.method}</div></div>
+              <div style={{fontSize:22,fontWeight:900,color:form.type==="credit"?T.teal:T.terra}}>{form.type==="credit"?"+":"−"}{fmt(form.amount)}</div>
+            </div>
           </div>}
-
           <div style={{display:"flex",gap:10}}>
-            <button onClick={attempt} disabled={!valid} style={{flex:1,background:valid?(splitOn?T.marigold:T.marigold):T.raised,border:"none",borderRadius:10,padding:"13px",color:valid?"white":T.dim,fontWeight:700,fontSize:14,fontFamily:"inherit",transition:"all .22s",boxShadow:valid?`0 4px 14px ${T.marigold}50`:"none"}}>{editTarget?"Save Changes":splitOn?"Log Split Bill":"Add Transaction"}</button>
+            <button onClick={attempt} disabled={!valid} style={{flex:1,background:valid?T.marigold:T.raised,border:"none",borderRadius:10,padding:"13px",color:valid?"white":T.dim,fontWeight:700,fontSize:14,fontFamily:"inherit",transition:"all .22s",boxShadow:valid?`0 4px 14px ${T.marigold}50`:"none"}}>{editTarget?"Save Changes":"Add Transaction"}</button>
             {editTarget&&<button onClick={onCancel} style={{background:T.raised,border:`1px solid ${T.bord}`,borderRadius:10,padding:"13px 18px",color:T.sub,fontFamily:"inherit",fontWeight:500,fontSize:14}}>Cancel</button>}
           </div>
         </div>
