@@ -1066,10 +1066,13 @@ export default function App() {
   const[loggedIn,sLI]=useState(false);const[tab,sTab]=useState("overview");const[view,sView]=useState("expense");
   const[txns,sTxns]=useState([]);const[loading,sLoad]=useState(true);const[dbErr,sDbErr]=useState("");
   const[budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
-  const[bankBalance,setBankBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
-  // Modal shows only if gulak_bank_set has never been true in localStorage on this device
-  const[bankSetupNeeded,setBankSetupNeeded]=useState(false);
-  const bankEverSet=useRef(LS.get("gulak_bank_set",false));
+  // Bank balance = starting balance + all income - all non-credit-card expenses
+  // Computed fresh from transactions so it's always accurate
+  const bankBalance=useMemo(()=>{
+    const income=txns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
+    const expenses=txns.filter(t=>t.type==="debit"&&t.method!=="Credit Card").reduce((s,t)=>s+t.amount,0);
+    return startingBalance+income-expenses;
+  },[txns,startingBalance]);
   const[profile,sProfRaw]=useState(()=>LS.get("gulak_profile",DEF_PROFILE));
   const[customCats,sCats]=useState(()=>LS.get("gulak_custom_cats",[]));
   const[editTarget,sET]=useState(null);const[toast,sToast]=useState(null);const[delId,sDel]=useState(null);const[alert,sAlert]=useState(null);
@@ -1079,6 +1082,10 @@ export default function App() {
   const T=dark?DARK:LIGHT;
   const didLoad=useRef(false);
 
+  const[startingBalance,setStartingBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
+  const[bankSetupNeeded,setBankSetupNeeded]=useState(false);
+  const bankEverSet=useRef(LS.get("gulak_bank_set",false));
+
   useEffect(()=>{
     Promise.all([sb.all(),sb.getSettings()]).then(([rows,settings])=>{
       sTxns(rows);
@@ -1086,13 +1093,12 @@ export default function App() {
         sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});
         if(settings.budget)sBudget(Number(settings.budget));
         if(settings.bank_balance!=null){
-          setBankBalanceRaw(Number(settings.bank_balance));
+          setStartingBalanceRaw(Number(settings.bank_balance));
           LS.set("gulak_bank",Number(settings.bank_balance));
           LS.set("gulak_bank_set",true);
           bankEverSet.current=true;
         }
       }
-      // Only show modal if balance was NEVER set on this device
       if(!bankEverSet.current){setBankSetupNeeded(true);}
       didLoad.current=true;sLoad(false);
     }).catch(e=>{sDbErr(e.message);sLoad(false);});
@@ -1100,41 +1106,19 @@ export default function App() {
 
   useEffect(()=>{LS.set("gulak_dark",dark);},[dark]);
   useEffect(()=>{LS.set("gulak_custom_cats",customCats);},[customCats]);
-  useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,bank_balance:bankBalance,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
+  useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,bank_balance:startingBalance,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
 
-  // Bank balance can go negative (overspent) — no clamping at zero
-  const setBankBalance=vOrFn=>{setBankBalanceRaw(prev=>{const n=typeof vOrFn==="function"?vOrFn(prev):Number(vOrFn)||0;LS.set("gulak_bank",n);if(didLoad.current)sb.saveSettings({budget,bank_balance:n,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});return n;});};
+  // setBankBalance only updates the STARTING balance (set once at setup or in settings)
+  const setBankBalance=amount=>{const n=Number(amount)||0;setStartingBalanceRaw(n);LS.set("gulak_bank",n);if(didLoad.current)sb.saveSettings({budget,bank_balance:n,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});};
   const handleBankSetup=async(amount)=>{LS.set("gulak_bank_set",true);bankEverSet.current=true;setBankBalance(amount);setBankSetupNeeded(false);};
-  const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,bank_balance:bankBalance,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
+  const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,bank_balance:startingBalance,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
 
-  const handleAdd=async t=>{
-    try{
-      const s=await sb.insert(t);
-      sTxns(p=>[s,...p]);
-      if(t.type==="debit"&&t.method!=="Credit Card")setBankBalance(b=>b-t.amount);
-      if(t.type==="credit")setBankBalance(b=>b+t.amount);
-      toast2("Saved ✓");
-    }catch(e){toast2("Save failed","err");}
-  };
-  const handleUpdate=async t=>{try{
-    const old2=txns.find(x=>x.id===t.id);
-    if(old2){
-      if(old2.type==="debit"&&old2.method!=="Credit Card")setBankBalance(b=>b+old2.amount);
-      if(old2.type==="credit")setBankBalance(b=>b-old2.amount);
-    }
-    await sb.update(t);sTxns(p=>p.map(x=>x.id===t.id?{...t,exclude_budget:t.exclude_budget||false}:x));
-    if(t.type==="debit"&&t.method!=="Credit Card")setBankBalance(b=>b-t.amount);
-    if(t.type==="credit")setBankBalance(b=>b+t.amount);
-    sET(null);sTab("dashboard");toast2("Updated ✓");}catch{toast2("Failed","err");}};
+  // Transactions just save to DB and update state — bank balance recomputes automatically
+  const handleAdd=async t=>{try{const s=await sb.insert(t);sTxns(p=>[s,...p]);toast2("Saved ✓");}catch(e){toast2("Save failed","err");}};
+  const handleUpdate=async t=>{try{await sb.update(t);sTxns(p=>p.map(x=>x.id===t.id?{...t,exclude_budget:t.exclude_budget||false}:x));sET(null);sTab("dashboard");toast2("Updated ✓");}catch{toast2("Failed","err");}};
   const handleEdit=t=>{sET(t);sTab("entry");};
-  const handleDelete=async()=>{try{
-    const t=txns.find(x=>x.id===delId);
-    if(t){
-      if(t.type==="debit"&&t.method!=="Credit Card")setBankBalance(b=>b+t.amount);
-      if(t.type==="credit")setBankBalance(b=>b-t.amount);
-    }
-    await sb.remove(delId);sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");}catch{toast2("Failed","err");}};
+  const handleDelete=async()=>{try{await sb.remove(delId);sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");}catch{toast2("Failed","err");}};
   const clearData=async()=>{if(!window.confirm("Delete ALL transactions?"))return;try{await sb.clearAll();sTxns([]);toast2("Cleared","err");}catch{toast2("Failed","err");}};
   const tSpend=txns.filter(t=>t.type==="debit"&&!t.exclude_budget&&t.date===today()).reduce((s,t)=>s+(t.split_share!=null?t.split_share:t.amount),0);
   const dn=profile.displayName||profile.username;
