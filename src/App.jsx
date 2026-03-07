@@ -561,7 +561,7 @@ function Dashboard({txns,budget,name,T,view,onEdit,onDelete,customCats,selMonth,
                   <tbody>
                     {displayTxns.slice(0,50).map(t=>(
                       <tr key={t.id} className="rowh" style={{borderTop:`1px solid ${T.bord}`}}>
-                        <td style={{padding:"13px 20px",color:T.text,fontWeight:500}}>{t.description}</td>
+                        <td style={{padding:"13px 20px",color:T.text,fontWeight:500}}>{t.description==="__opening_balance__"?"Opening Balance":t.description}</td>
                         <td style={{padding:"13px 20px"}}><span style={{fontSize:13,background:T.goldBg,color:T.gold,borderRadius:99,padding:"3px 12px",fontWeight:600}}>{CAT_ICON[t.category]||"📦"} {t.category}</span></td>
                         <td style={{padding:"13px 20px",color:T.sub,fontSize:13}}>{t.method}</td>
                         <td style={{padding:"13px 20px",color:T.sub,fontSize:13,whiteSpace:"nowrap"}}>{t.date}</td>
@@ -636,7 +636,7 @@ function Monthly({txns,budget,T,view,selMonth,setSelMonth,selYear,setSelYear}) {
             <div style={{fontSize:11,fontWeight:700,color:acC,letterSpacing:".07em",textTransform:"uppercase",marginBottom:12}}>{MONTHS[mon]} {sel}</div>
             {sd?<div style={{display:"flex",flexDirection:"column",gap:6}}>{sd.txns.filter(t=>isExp?t.type==="debit":t.type==="credit").map(t=>(
               <div key={t.id} style={{display:"flex",justifyContent:"space-between",padding:"10px 12px",background:T.raised,borderRadius:10}}>
-                <div><div style={{fontSize:13,color:T.text,fontWeight:500}}>{t.description}</div><div style={{fontSize:11,color:T.sub,marginTop:2}}>{t.category}</div></div>
+                <div><div style={{fontSize:13,color:T.text,fontWeight:500}}>{t.description==="__opening_balance__"?"Opening Balance":t.description}</div><div style={{fontSize:11,color:T.sub,marginTop:2}}>{t.category}</div></div>
                 <span style={{fontSize:14,fontWeight:800,color:acC}}>{isExp?"−":"+"}{fmt(t.amount)}</span>
               </div>
             ))}</div>:<div style={{color:T.dim,fontSize:13,textAlign:"center",padding:"12px 0"}}>No transactions</div>}
@@ -904,13 +904,13 @@ function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T,cus
       <div style={{flex:1}}>
         <div style={{fontSize:11,fontWeight:600,color:T.sub,letterSpacing:".07em",textTransform:"uppercase",marginBottom:14}}>Recent Entries</div>
         <div style={{display:"flex",flexDirection:"column",gap:7}}>
-          {[...txns].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(t=>(
+          {[...txns].filter(t=>t.description!=="__opening_balance__").sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(t=>(
             <div key={t.id} className="card hov" style={{padding:"12px 16px"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <div style={{width:4,height:34,background:t.type==="debit"?T.terra:T.teal,borderRadius:99,flexShrink:0}}/>
                   <div>
-                    <div style={{fontSize:13,color:T.text,fontWeight:500}}>{t.description}</div>
+                    <div style={{fontSize:13,color:T.text,fontWeight:500}}>{t.description==="__opening_balance__"?"Opening Balance":t.description}</div>
                     <div style={{fontSize:11,color:T.sub,marginTop:2}}>{t.date} · {t.category}{t.exclude_budget&&<span style={{marginLeft:5,color:T.marigold,fontWeight:600}}>· not in budget</span>}</div>
                   </div>
                 </div>
@@ -1075,17 +1075,16 @@ export default function App() {
   const T=dark?DARK:LIGHT;
   const didLoad=useRef(false);
 
-  const[startingBalance,setStartingBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
   const[bankSetupNeeded,setBankSetupNeeded]=useState(false);
   const bankEverSet=useRef(LS.get("gulak_bank_set",false));
 
-  // Bank balance = starting balance + all income - all non-credit-card expenses
-  // Computed fresh from transactions so it's always accurate
+  // Bank balance = sum of all income - sum of all non-credit-card expenses
+  // Pure computation from transactions — always correct, never drifts
   const bankBalance=useMemo(()=>{
     const income=txns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
     const expenses=txns.filter(t=>t.type==="debit"&&t.method!=="Credit Card").reduce((s,t)=>s+t.amount,0);
-    return startingBalance+income-expenses;
-  },[txns,startingBalance]);
+    return income-expenses;
+  },[txns]);
 
   useEffect(()=>{
     Promise.all([sb.all(),sb.getSettings()]).then(([rows,settings])=>{
@@ -1093,26 +1092,35 @@ export default function App() {
       if(settings){
         sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});
         if(settings.budget)sBudget(Number(settings.budget));
-        if(settings.bank_balance!=null){
-          setStartingBalanceRaw(Number(settings.bank_balance));
-          LS.set("gulak_bank",Number(settings.bank_balance));
-          LS.set("gulak_bank_set",true);
-          bankEverSet.current=true;
-        }
       }
-      if(!bankEverSet.current){setBankSetupNeeded(true);}
+      // Show opening balance modal if never set
+      const hasOpeningBalance=rows.some(t=>t.description==="__opening_balance__");
+      if(!bankEverSet.current&&!hasOpeningBalance){setBankSetupNeeded(true);}
+      else{LS.set("gulak_bank_set",true);bankEverSet.current=true;}
       didLoad.current=true;sLoad(false);
     }).catch(e=>{sDbErr(e.message);sLoad(false);});
   },[]);
 
   useEffect(()=>{LS.set("gulak_dark",dark);},[dark]);
   useEffect(()=>{LS.set("gulak_custom_cats",customCats);},[customCats]);
-  useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,bank_balance:startingBalance,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
+  useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
 
-  // setBankBalance only updates the STARTING balance (set once at setup or in settings)
-  const setBankBalance=amount=>{const n=Number(amount)||0;setStartingBalanceRaw(n);LS.set("gulak_bank",n);if(didLoad.current)sb.saveSettings({budget,bank_balance:n,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});};
-  const handleBankSetup=async(amount)=>{LS.set("gulak_bank_set",true);bankEverSet.current=true;setBankBalance(amount);setBankSetupNeeded(false);};
-  const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,bank_balance:startingBalance,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
+  // When user sets their "opening balance" — we create a special income transaction for it
+  const setBankBalance=async(amount)=>{
+    const n=Number(amount)||0;
+    // Remove any existing opening balance transaction first
+    const existing=txns.find(t=>t.description==="__opening_balance__");
+    if(existing)await sb.remove(existing.id).catch(()=>{});
+    if(n!==0){
+      const entry={date:today(),description:"__opening_balance__",category:"Other",method:"Bank Transfer",type:"credit",amount:n};
+      const saved=await sb.insert(entry);
+      sTxns(p=>[saved,...p.filter(t=>t.description!=="__opening_balance__")]);
+    } else {
+      sTxns(p=>p.filter(t=>t.description!=="__opening_balance__"));
+    }
+  };
+  const handleBankSetup=async(amount)=>{LS.set("gulak_bank_set",true);bankEverSet.current=true;await setBankBalance(amount);setBankSetupNeeded(false);};
+  const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
 
   // Transactions just save to DB and update state — bank balance recomputes automatically
