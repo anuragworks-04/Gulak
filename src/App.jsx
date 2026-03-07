@@ -1066,13 +1066,6 @@ export default function App() {
   const[loggedIn,sLI]=useState(false);const[tab,sTab]=useState("overview");const[view,sView]=useState("expense");
   const[txns,sTxns]=useState([]);const[loading,sLoad]=useState(true);const[dbErr,sDbErr]=useState("");
   const[budget,sBudget]=useState(()=>LS.get("gulak_budget",500));
-  // Bank balance = starting balance + all income - all non-credit-card expenses
-  // Computed fresh from transactions so it's always accurate
-  const bankBalance=useMemo(()=>{
-    const income=txns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
-    const expenses=txns.filter(t=>t.type==="debit"&&t.method!=="Credit Card").reduce((s,t)=>s+t.amount,0);
-    return startingBalance+income-expenses;
-  },[txns,startingBalance]);
   const[profile,sProfRaw]=useState(()=>LS.get("gulak_profile",DEF_PROFILE));
   const[customCats,sCats]=useState(()=>LS.get("gulak_custom_cats",[]));
   const[editTarget,sET]=useState(null);const[toast,sToast]=useState(null);const[delId,sDel]=useState(null);const[alert,sAlert]=useState(null);
@@ -1085,6 +1078,14 @@ export default function App() {
   const[startingBalance,setStartingBalanceRaw]=useState(()=>LS.get("gulak_bank",0));
   const[bankSetupNeeded,setBankSetupNeeded]=useState(false);
   const bankEverSet=useRef(LS.get("gulak_bank_set",false));
+
+  // Bank balance = starting balance + all income - all non-credit-card expenses
+  // Computed fresh from transactions so it's always accurate
+  const bankBalance=useMemo(()=>{
+    const income=txns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
+    const expenses=txns.filter(t=>t.type==="debit"&&t.method!=="Credit Card").reduce((s,t)=>s+t.amount,0);
+    return startingBalance+income-expenses;
+  },[txns,startingBalance]);
 
   useEffect(()=>{
     Promise.all([sb.all(),sb.getSettings()]).then(([rows,settings])=>{
