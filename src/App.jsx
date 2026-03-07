@@ -929,60 +929,6 @@ function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T,cus
     </div>
   );
 }
-  return(
-    <div className="anim" style={{display:"flex",gap:24,alignItems:"flex-start",width:"100%"}}>
-      <div style={{flex:"0 0 490px",maxWidth:490}}>
-        <div style={{marginBottom:22}}><div style={{fontSize:28,fontWeight:900,color:T.text,letterSpacing:"-0.04em"}}>{editTarget?"Edit Transaction":"New Entry"}</div><div style={{fontSize:14,color:T.sub,marginTop:4}}>Record an {form.type==="debit"?"expense":"income"}</div></div>
-        <div className="card" style={{padding:26}}>
-          <div style={{marginBottom:20}}>
-            <label style={L}>Type</label>
-            <div style={{display:"flex",background:T.raised,borderRadius:10,padding:4,gap:3}}>
-              {[["debit","Expense"],["credit","Income"]].map(([tp,lb])=>(
-                <button key={tp} onClick={()=>sF({...form,type:tp})} style={{flex:1,padding:"10px",borderRadius:8,border:"none",fontFamily:"inherit",fontWeight:700,fontSize:14,transition:"all .18s",background:form.type===tp?(tp==="debit"?T.terraBg:T.tealBg):"transparent",color:form.type===tp?(tp==="debit"?T.terra:T.teal):T.sub}}>{lb}</button>
-              ))}
-            </div>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
-            <div><label style={L}>Date</label><input type="date" value={form.date} onChange={e=>sF({...form,date:e.target.value})} style={F}/></div>
-            <div><label style={L}>Amount (₹)</label><input type="text" inputMode="numeric" value={form.amount} onChange={e=>sF({...form,amount:e.target.value.replace(/[^0-9.]/g,"")})} placeholder="0.00" style={F}/></div>
-          </div>
-          <div style={{marginBottom:14}}><label style={L}>Description</label><input value={form.description} onChange={e=>sF({...form,description:e.target.value})} placeholder="e.g. Zomato, Salary…" style={F}/></div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
-            <div><label style={L}>Category</label><select value={form.category} onChange={e=>sF({...form,category:e.target.value})} style={{...F,cursor:"pointer"}}>{allCats.map(c=><option key={c}>{c}</option>)}</select></div>
-            <div><label style={L}>Payment Method</label><select value={form.method} onChange={e=>sF({...form,method:e.target.value})} style={{...F,cursor:"pointer"}}>{METHODS.map(m=><option key={m}>{m}</option>)}</select></div>
-          </div>
-          {valid&&<div style={{background:T.raised,borderRadius:10,padding:"13px 16px",marginBottom:18,borderLeft:`3px solid ${form.type==="debit"?T.terra:T.teal}`}}>
-            <div style={{fontSize:10,color:T.sub,fontWeight:600,letterSpacing:".07em",textTransform:"uppercase",marginBottom:8}}>Preview</div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div><div style={{fontWeight:600,color:T.text,fontSize:14}}>{form.description}</div><div style={{fontSize:12,color:T.sub,marginTop:2}}>{form.category} · {form.method}</div></div>
-              <div style={{fontSize:22,fontWeight:900,color:form.type==="credit"?T.teal:T.terra}}>{form.type==="credit"?"+":"−"}{fmt(form.amount)}</div>
-            </div>
-          </div>}
-          <div style={{display:"flex",gap:10}}>
-            <button onClick={attempt} disabled={!valid} style={{flex:1,background:valid?T.marigold:T.raised,border:"none",borderRadius:10,padding:"13px",color:valid?"white":T.dim,fontWeight:700,fontSize:14,fontFamily:"inherit",transition:"all .22s",boxShadow:valid?`0 4px 14px ${T.marigold}50`:"none"}}>{editTarget?"Save Changes":"Add Transaction"}</button>
-            {editTarget&&<button onClick={onCancel} style={{background:T.raised,border:`1px solid ${T.bord}`,borderRadius:10,padding:"13px 18px",color:T.sub,fontFamily:"inherit",fontWeight:500,fontSize:14}}>Cancel</button>}
-          </div>
-        </div>
-      </div>
-      <div style={{flex:1}}>
-        <div style={{fontSize:11,fontWeight:600,color:T.sub,letterSpacing:".07em",textTransform:"uppercase",marginBottom:14}}>Recent Entries</div>
-        <div style={{display:"flex",flexDirection:"column",gap:7}}>
-          {[...txns].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(t=>(
-            <div key={t.id} className="card hov" style={{padding:"12px 16px"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <div style={{width:4,height:34,background:t.type==="debit"?T.terra:T.teal,borderRadius:99,flexShrink:0}}/>
-                  <div><div style={{fontSize:13,color:T.text,fontWeight:500}}>{t.description}</div><div style={{fontSize:11,color:T.sub,marginTop:2}}>{t.date} · {t.category}</div></div>
-                </div>
-                <div style={{fontSize:14,fontWeight:700,color:t.type==="credit"?T.teal:T.terra}}>{t.type==="credit"?"+":"−"}{fmt(t.amount)}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // PROFILE
 function ProfilePage({profile,setProfile,onLogout,onClear,T,customCats,setCustomCats,bankBalance,setBankBalance}) {
