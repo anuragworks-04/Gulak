@@ -279,18 +279,12 @@ function TopBar({tab,setTab,view,setView,profile,dark,toggleDark,budget,tSpend,T
 
 
 // OVERVIEW — Command Center
-function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
+function Overview({txns,budget,name,T,setTab,selMonth,selYear,bankBalance}) {
   const nowM=new Date().getMonth();const nowY=new Date().getFullYear();
   const isCurrent=selMonth===nowM&&selYear===nowY;
   const todayKey=today();
   const h=new Date().getHours();
   const greet=h<12?"Good morning":h<17?"Good afternoon":"Good evening";
-
-  const bankBalance=useMemo(()=>{
-    const inc=txns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
-    const exp=txns.filter(t=>t.type==="debit").reduce((s,t)=>s+t.amount,0);
-    return inc-exp;
-  },[txns]);
 
   const monthTxns=useMemo(()=>txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth;}),[txns,selMonth,selYear]);
   const monthSpent=monthTxns.filter(t=>t.type==="debit"&&!t.exclude_budget).reduce((s,t)=>s+(t.split_share!=null?t.split_share:t.amount),0);
@@ -1159,7 +1153,7 @@ export default function App() {
       {loggedIn&&<>
         <TopBar tab={tab} setTab={t=>{sTab(t);if(t!=="entry")sET(null);}} view={view} setView={sView} profile={profile} dark={dark} toggleDark={()=>setDark(d=>!d)} budget={budget} tSpend={tSpend} T={T} onAdd={()=>{sET(null);sTab("entry");}} selMonth={selMonth} setSelMonth={setSelMonth} selYear={selYear} setSelYear={setSelYear}/>
         <div style={{flex:1,width:"100%",padding:"28px 32px",boxSizing:"border-box"}}>
-          {tab==="overview"&&<Overview txns={txns} budget={budget} name={dn} T={T} setTab={t=>{sTab(t);}} selMonth={selMonth} selYear={selYear}/>}
+          {tab==="overview"&&<Overview txns={txns} budget={budget} name={dn} T={T} setTab={t=>{sTab(t);}} selMonth={selMonth} selYear={selYear} bankBalance={bankBalance}/>}
           {(tab==="expense"||tab==="income")&&<Dashboard txns={txns} budget={budget} name={dn} T={T} view={tab==="expense"?"expense":"income"} onEdit={handleEdit} onDelete={sDel} customCats={customCats} selMonth={selMonth} selYear={selYear} bankBalance={bankBalance}/>}
           {tab==="monthly"&&<Monthly txns={txns} budget={budget} T={T} view={view} selMonth={selMonth} setSelMonth={setSelMonth} selYear={selYear} setSelYear={setSelYear}/>}
           {tab==="budget"&&<Budget txns={txns} budget={budget} setBudget={sBudget} T={T} selMonth={selMonth} selYear={selYear}/>}
