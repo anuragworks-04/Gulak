@@ -293,10 +293,10 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
   },[txns]);
 
   const monthTxns=useMemo(()=>txns.filter(t=>{const[y,m]=t.date.split("-").map(Number);return y===selYear&&m-1===selMonth;}),[txns,selMonth,selYear]);
-  const monthSpent=monthTxns.filter(t=>t.type==="debit").reduce((s,t)=>s+(t.split_share!=null?t.split_share:t.amount),0);
+  const monthSpent=monthTxns.filter(t=>t.type==="debit"&&!t.exclude_budget).reduce((s,t)=>s+(t.split_share!=null?t.split_share:t.amount),0);
   const monthReceived=monthTxns.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
 
-  const todaySpent=isCurrent?txns.filter(t=>t.type==="debit"&&t.date===todayKey).reduce((s,t)=>s+(t.split_share!=null?t.split_share:t.amount),0):0;
+  const todaySpent=isCurrent?txns.filter(t=>t.type==="debit"&&!t.exclude_budget&&t.date===todayKey).reduce((s,t)=>s+(t.split_share!=null?t.split_share:t.amount),0):0;
   const todaySaved=budget>0?budget-todaySpent:0;
   const bp=budget>0&&isCurrent?pct(todaySpent,budget):0;
   const bc=bp>=100?T.terra:bp>=80?T.marigold:T.teal;
@@ -310,7 +310,7 @@ function Overview({txns,budget,name,T,setTab,selMonth,selYear}) {
   const lifetimeSavings=useMemo(()=>{
     if(!budget)return 0;
     const dayMap={};
-    txns.filter(t=>t.type==="debit").forEach(t=>{dayMap[t.date]=(dayMap[t.date]||0)+(t.split_share!=null?t.split_share:t.amount);});
+    txns.filter(t=>t.type==="debit"&&!t.exclude_budget).forEach(t=>{dayMap[t.date]=(dayMap[t.date]||0)+(t.split_share!=null?t.split_share:t.amount);});
     return Object.entries(dayMap).reduce((sum,[,spent])=>sum+(budget-spent),0);
   },[txns,budget]);
 
@@ -673,7 +673,7 @@ function Budget({txns,budget,setBudget,T,selMonth,selYear}) {
     const arr=[];
     for(let d=1;d<=dim;d++){
       const key=`${yr}-${String(mon+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
-      const spend=txns.filter(t=>t.type==="debit"&&t.date===key).reduce((s,t)=>s+t.amount,0);
+      const spend=txns.filter(t=>t.type==="debit"&&!t.exclude_budget&&t.date===key).reduce((s,t)=>s+t.amount,0);
       arr.push({d,key,spend});
     }
     return arr;
@@ -835,16 +835,100 @@ function NewEntry({txns,onAdd,onUpdate,editTarget,onCancel,budget,setAlert,T,cus
   const defType=view==="income"?"credit":"debit";
   const[form,sF]=useState(()=>editTarget?{...editTarget,amount:String(editTarget.amount)}:newForm(defType));
   useEffect(()=>{sF(editTarget?{...editTarget,amount:String(editTarget.amount)}:newForm(defType));},[editTarget,defType]);
+  const[inBudget,setInBudget]=useState(()=>editTarget?!editTarget.exclude_budget:true);
+  useEffect(()=>{setInBudget(editTarget?!editTarget.exclude_budget:true);},[editTarget]);
   const allCats=[...BASE_CATS,...customCats];
   const valid=form.description&&form.amount&&parseFloat(form.amount)>0&&form.date;
   const attempt=()=>{
     if(!valid)return;const amt=parseFloat(form.amount);
-    if(form.type==="debit"&&budget>0&&!editTarget){const ts=txns.filter(t=>t.type==="debit"&&t.date===form.date).reduce((s,t)=>s+t.amount,0);if((ts+amt)/budget>=0.8){setAlert({spent:ts,budget,pending:amt,onConfirm:()=>{doSave(amt);setAlert(null);},onCancel:()=>setAlert(null)});return;}}
+    // Only check budget alert if this expense is included in budget
+    if(form.type==="debit"&&inBudget&&budget>0&&!editTarget){
+      const ts=txns.filter(t=>t.type==="debit"&&!t.exclude_budget&&t.date===form.date).reduce((s,t)=>s+t.amount,0);
+      if((ts+amt)/budget>=0.8){setAlert({spent:ts,budget,pending:amt,onConfirm:()=>{doSave(amt);setAlert(null);},onCancel:()=>setAlert(null)});return;}
+    }
     doSave(amt);
   };
-  const doSave=amt=>{if(editTarget)onUpdate({...form,amount:amt,id:editTarget.id});else{onAdd({...form,amount:amt});sF(newForm(defType));}};
+  const doSave=amt=>{
+    const entry={...form,amount:amt,...(form.type==="debit"?{exclude_budget:!inBudget}:{})};
+    if(editTarget)onUpdate({...entry,id:editTarget.id});
+    else{onAdd(entry);sF(newForm(defType));setInBudget(true);}
+  };
   const F={width:"100%",background:T.raised,border:`1px solid ${T.bord}`,borderRadius:10,padding:"12px 14px",color:T.text,fontSize:14,fontFamily:"inherit",transition:"all .18s"};
   const L={fontSize:11,fontWeight:600,color:T.sub,letterSpacing:".07em",textTransform:"uppercase",marginBottom:7,display:"block"};
+  return(
+    <div className="anim" style={{display:"flex",gap:24,alignItems:"flex-start",width:"100%"}}>
+      <div style={{flex:"0 0 490px",maxWidth:490}}>
+        <div style={{marginBottom:22}}><div style={{fontSize:28,fontWeight:900,color:T.text,letterSpacing:"-0.04em"}}>{editTarget?"Edit Transaction":"New Entry"}</div><div style={{fontSize:14,color:T.sub,marginTop:4}}>Record an {form.type==="debit"?"expense":"income"}</div></div>
+        <div className="card" style={{padding:26}}>
+          <div style={{marginBottom:20}}>
+            <label style={L}>Type</label>
+            <div style={{display:"flex",background:T.raised,borderRadius:10,padding:4,gap:3}}>
+              {[["debit","Expense"],["credit","Income"]].map(([tp,lb])=>(
+                <button key={tp} onClick={()=>sF({...form,type:tp})} style={{flex:1,padding:"10px",borderRadius:8,border:"none",fontFamily:"inherit",fontWeight:700,fontSize:14,transition:"all .18s",background:form.type===tp?(tp==="debit"?T.terraBg:T.tealBg):"transparent",color:form.type===tp?(tp==="debit"?T.terra:T.teal):T.sub}}>{lb}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+            <div><label style={L}>Date</label><input type="date" value={form.date} onChange={e=>sF({...form,date:e.target.value})} style={F}/></div>
+            <div><label style={L}>Amount (₹)</label><input type="text" inputMode="numeric" value={form.amount} onChange={e=>sF({...form,amount:e.target.value.replace(/[^0-9.]/g,"")})} placeholder="0.00" style={F}/></div>
+          </div>
+          <div style={{marginBottom:14}}><label style={L}>Description</label><input value={form.description} onChange={e=>sF({...form,description:e.target.value})} placeholder="e.g. Zomato, Salary…" style={F}/></div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:20}}>
+            <div><label style={L}>Category</label><select value={form.category} onChange={e=>sF({...form,category:e.target.value})} style={{...F,cursor:"pointer"}}>{allCats.map(c=><option key={c}>{c}</option>)}</select></div>
+            <div><label style={L}>Payment Method</label><select value={form.method} onChange={e=>sF({...form,method:e.target.value})} style={{...F,cursor:"pointer"}}>{METHODS.map(m=><option key={m}>{m}</option>)}</select></div>
+          </div>
+
+          {/* ── INCLUDE IN BUDGET — only for expenses ── */}
+          {form.type==="debit"&&(
+            <button onClick={()=>setInBudget(b=>!b)} style={{display:"flex",alignItems:"center",gap:12,width:"100%",background:inBudget?T.tealBg:T.raised,border:`1px solid ${inBudget?T.tealBord:T.bord}`,borderRadius:12,padding:"12px 16px",cursor:"pointer",transition:"all .2s",fontFamily:"inherit",marginBottom:20,textAlign:"left"}}>
+              <div style={{width:38,height:22,borderRadius:99,background:inBudget?T.teal:T.bord,transition:"all .2s",position:"relative",flexShrink:0}}>
+                <div style={{position:"absolute",top:3,left:inBudget?18:3,width:16,height:16,borderRadius:"50%",background:"white",transition:"left .2s",boxShadow:"0 1px 4px rgba(0,0,0,.25)"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:13.5,fontWeight:700,color:inBudget?T.teal:T.sub}}>Include in budget</div>
+                <div style={{fontSize:11.5,color:T.sub,marginTop:1}}>{inBudget?"Counts against your daily & monthly limit":"Bank balance updated, budget unaffected"}</div>
+              </div>
+            </button>
+          )}
+
+          {valid&&<div style={{background:T.raised,borderRadius:10,padding:"13px 16px",marginBottom:18,borderLeft:`3px solid ${form.type==="debit"?T.terra:T.teal}`}}>
+            <div style={{fontSize:10,color:T.sub,fontWeight:600,letterSpacing:".07em",textTransform:"uppercase",marginBottom:8}}>Preview</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontWeight:600,color:T.text,fontSize:14}}>{form.description}</div>
+                <div style={{fontSize:12,color:T.sub,marginTop:2}}>{form.category} · {form.method}{form.type==="debit"&&!inBudget&&<span style={{marginLeft:6,color:T.marigold,fontWeight:600}}>· not in budget</span>}</div>
+              </div>
+              <div style={{fontSize:22,fontWeight:900,color:form.type==="credit"?T.teal:T.terra}}>{form.type==="credit"?"+":"−"}{fmt(form.amount)}</div>
+            </div>
+          </div>}
+          <div style={{display:"flex",gap:10}}>
+            <button onClick={attempt} disabled={!valid} style={{flex:1,background:valid?T.marigold:T.raised,border:"none",borderRadius:10,padding:"13px",color:valid?"white":T.dim,fontWeight:700,fontSize:14,fontFamily:"inherit",transition:"all .22s",boxShadow:valid?`0 4px 14px ${T.marigold}50`:"none"}}>{editTarget?"Save Changes":"Add Transaction"}</button>
+            {editTarget&&<button onClick={onCancel} style={{background:T.raised,border:`1px solid ${T.bord}`,borderRadius:10,padding:"13px 18px",color:T.sub,fontFamily:"inherit",fontWeight:500,fontSize:14}}>Cancel</button>}
+          </div>
+        </div>
+      </div>
+      <div style={{flex:1}}>
+        <div style={{fontSize:11,fontWeight:600,color:T.sub,letterSpacing:".07em",textTransform:"uppercase",marginBottom:14}}>Recent Entries</div>
+        <div style={{display:"flex",flexDirection:"column",gap:7}}>
+          {[...txns].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(t=>(
+            <div key={t.id} className="card hov" style={{padding:"12px 16px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <div style={{width:4,height:34,background:t.type==="debit"?T.terra:T.teal,borderRadius:99,flexShrink:0}}/>
+                  <div>
+                    <div style={{fontSize:13,color:T.text,fontWeight:500}}>{t.description}</div>
+                    <div style={{fontSize:11,color:T.sub,marginTop:2}}>{t.date} · {t.category}{t.exclude_budget&&<span style={{marginLeft:5,color:T.marigold,fontWeight:600}}>· not in budget</span>}</div>
+                  </div>
+                </div>
+                <div style={{fontSize:14,fontWeight:700,color:t.type==="credit"?T.teal:T.terra}}>{t.type==="credit"?"+":"−"}{fmt(t.amount)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
   return(
     <div className="anim" style={{display:"flex",gap:24,alignItems:"flex-start",width:"100%"}}>
       <div style={{flex:"0 0 490px",maxWidth:490}}>
@@ -1105,7 +1189,7 @@ export default function App() {
     }
     await sb.remove(delId);sTxns(p=>p.filter(t=>t.id!==delId));sDel(null);toast2("Deleted","err");}catch{toast2("Failed","err");}};
   const clearData=async()=>{if(!window.confirm("Delete ALL transactions?"))return;try{await sb.clearAll();sTxns([]);toast2("Cleared","err");}catch{toast2("Failed","err");}};
-  const tSpend=txns.filter(t=>t.type==="debit"&&t.date===today()).reduce((s,t)=>s+(t.split_share!=null?t.split_share:t.amount),0);
+  const tSpend=txns.filter(t=>t.type==="debit"&&!t.exclude_budget&&t.date===today()).reduce((s,t)=>s+(t.split_share!=null?t.split_share:t.amount),0);
   const dn=profile.displayName||profile.username;
 
   if(loading)return(<div style={{minHeight:"100vh",background:"#110D0A",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16,fontFamily:"'Inter',sans-serif"}}><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style><div style={{width:36,height:36,border:"3px solid #3A2E24",borderTop:"3px solid #E8693A",borderRadius:"50%",animation:"spin .7s linear infinite"}}/><div style={{fontSize:13,color:"#8A7A68"}}>Connecting…</div></div>);
