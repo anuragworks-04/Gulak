@@ -1090,20 +1090,22 @@ export default function App() {
     Promise.all([sb.all(),sb.getSettings()]).then(([rows,settings])=>{
       sTxns(rows);
       if(settings){
-        sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||""};LS.set("gulak_profile",m);return m;});
+        sProfRaw(p=>{const m={...p,username:settings.username||p.username,password:settings.password||p.password,displayName:settings.display_name||p.displayName||"",photo:settings.photo||p.photo||null};LS.set("gulak_profile",m);return m;});
         if(settings.budget)sBudget(Number(settings.budget));
       }
-      // Show opening balance modal if never set
+      // Show opening balance modal only if never set on this device
       const hasOpeningBalance=rows.some(t=>t.description==="__opening_balance__");
-      if(!bankEverSet.current&&!hasOpeningBalance){setBankSetupNeeded(true);}
-      else{LS.set("gulak_bank_set",true);bankEverSet.current=true;}
+      if(hasOpeningBalance){LS.set("gulak_bank_set",true);bankEverSet.current=true;}
+      if(!bankEverSet.current){setBankSetupNeeded(true);}
       didLoad.current=true;sLoad(false);
     }).catch(e=>{sDbErr(e.message);sLoad(false);});
   },[]);
 
   useEffect(()=>{LS.set("gulak_dark",dark);},[dark]);
   useEffect(()=>{LS.set("gulak_custom_cats",customCats);},[customCats]);
-  useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username}).catch(()=>{});},[budget]);
+  // Helper to persist all settings at once
+  const saveAllSettings=(overrides={})=>{if(!didLoad.current)return;sb.saveSettings({budget,...overrides,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username,photo:profile.photo||null}).catch(()=>{});};
+  useEffect(()=>{LS.set("gulak_budget",budget);if(!didLoad.current)return;sb.saveSettings({budget,username:profile.username,password:profile.password,display_name:profile.displayName||profile.username,photo:profile.photo||null}).catch(()=>{});},[budget]);
 
   // When user sets their "opening balance" — we create a special income transaction for it
   const setBankBalance=async(amount)=>{
@@ -1120,7 +1122,7 @@ export default function App() {
     }
   };
   const handleBankSetup=async(amount)=>{LS.set("gulak_bank_set",true);bankEverSet.current=true;await setBankBalance(amount);setBankSetupNeeded(false);};
-  const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);sb.saveSettings({budget,username:next.username,password:next.password,display_name:next.displayName||next.username}).catch(()=>{});return next;});};
+  const setProfile=fn=>{sProfRaw(p=>{const next=typeof fn==="function"?fn(p):fn;LS.set("gulak_profile",next);if(didLoad.current)sb.saveSettings({budget,username:next.username,password:next.password,display_name:next.displayName||next.username,photo:next.photo||null}).catch(()=>{});return next;});};
   const toast2=(msg,type="ok")=>{sToast({msg,type});setTimeout(()=>sToast(null),2800);};
 
   // Transactions just save to DB and update state — bank balance recomputes automatically
